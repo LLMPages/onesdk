@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="llm-onesdk",
+    name="onesdk",
     version="0.0.1",
     author="anycodes",
     author_email="liuyu@xmail.tech",

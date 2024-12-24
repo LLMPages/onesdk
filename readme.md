@@ -16,7 +16,7 @@ OneSDK is a Python library that provides a unified interface for interacting wit
 ## Installation
 
 ```bash
-pip install llm-onesdk
+pip install onesdk
 ```
 
 ## Quick Start
@@ -26,7 +26,7 @@ OneSDK supports two main usage patterns:
 ### Pattern 1: Specify model for each call
 
 ```python
-from llm-onesdk import OneSDK
+from onesdk import OneSDK
 
 # Initialize the SDK with your chosen provider and credentials
 sdk = OneSDK("anthropic", {"api_key": "your-api-key"})
