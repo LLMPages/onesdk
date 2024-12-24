@@ -1,0 +1,4 @@
+requests>=2.25.1
+python-dotenv>=0.19.0
+typing-extensions>=3.7.4
+unittest2>=1.1.0
