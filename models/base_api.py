@@ -36,14 +36,7 @@ class BaseAPI(ABC):
         """Create a completion using the legacy API (if supported by the provider)."""
         raise NotImplementedError("Completion API not supported for this provider")
 
-    def upload_file(self, file_path: str) -> str:
-        """Upload a file and return a reference that can be used in messages."""
-        raise NotImplementedError("File upload not supported for this provider")
 
     def set_proxy(self, proxy_url: str):
         """Set a proxy for API calls."""
         raise NotImplementedError("Proxy setting not supported for this provider")
-
-    def get_usage(self) -> Dict:
-        """Get usage statistics for the current account."""
-        raise NotImplementedError("Usage statistics not available for this provider")

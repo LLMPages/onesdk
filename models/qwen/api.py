@@ -168,11 +168,3 @@ class API(BaseAPI):
             'http': proxy_url,
             'https': proxy_url
         }
-
-    def upload_file(self, file_path: str) -> str:
-        """Upload a file and return a reference that can be used in messages."""
-        raise NotImplementedError("File upload not currently supported for Aliyun")
-
-    def get_usage(self) -> Dict:
-        """Get usage statistics for the current account."""
-        raise NotImplementedError("Usage statistics not currently available for Aliyun")
