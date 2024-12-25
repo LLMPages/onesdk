@@ -31,7 +31,7 @@ from llm_onesdk import OneSDK
 sdk = OneSDK("anthropic", {"api_key": "your-api-key"})
 
 response = sdk.generate(
-    model="claude-2",
+    model="claude-3-opus-20240229",
     messages=[{"role": "user", "content": "Tell me a joke about programming."}]
 )
 print(response['choices'][0]['message']['content'])
@@ -43,7 +43,7 @@ print(response['choices'][0]['message']['content'])
 from llm_onesdk import OneSDK
 
 sdk = OneSDK("anthropic", {"api_key": "your-api-key"})
-sdk.set_model("claude-2")
+sdk.set_model("claude-3-opus-20240229")
 
 response = sdk.generate(
     messages=[{"role": "user", "content": "Tell me a joke about programming."}]
@@ -55,7 +55,7 @@ print(response['choices'][0]['message']['content'])
 
 ```python
 for chunk in sdk.stream_generate(
-    model="claude-2",  # Optional if using set_model()
+    model="claude-3-opus-20240229",  # Optional if using set_model()
     messages=[{"role": "user", "content": "Write a short story about AI."}]
 ):
     print(chunk['choices'][0]['message']['content'], end='', flush=True)
@@ -70,17 +70,28 @@ print(models)
 
 # Count tokens
 token_count = sdk.count_tokens(
-    model="claude-2",
+    model="claude-3-opus-20240229",
     messages=[{"role": "user", "content": "How many tokens is this?"}]
 )
 print(f"Token count: {token_count}")
 ```
 
-## Supported Providers
+## Supported Providers and Methods
 
-```python
-print(OneSDK.list_providers())
-```
+The following table shows the supported providers, their default models, and the methods they support:
+
+| Provider  | Default Model         | list_models | generate | stream_generate | count_tokens | create_embedding | create_image |
+|-----------|----------------------|-------------|----------|-----------------|--------------|------------------|--------------|
+| Anthropic | claude-3-opus-20240229 | ✓           | ✓        | ✓               | ✓            | ✗                | ✗            |
+| Qwen      | qwen-turbo           | ✓           | ✓        | ✓               | ✓            | ✓                | ✗            |
+| Cohere    | command              | ✗           | ✓        | ✓               | ✓            | ✓                | ✗            |
+| Doubao    | doubao-v1            | ✗           | ✓        | ✓               | ✓            | ✓                | ✗            |
+| Gemini    | gemini-pro           | ✗           | ✓        | ✓               | ✗            | ✗                | ✗            |
+| Minimax   | abab5-chat           | ✗           | ✓        | ✓               | ✓            | ✓                | ✓            |
+| OpenAI    | gpt-3.5-turbo        | ✓           | ✓        | ✓               | ✓            | ✓                | ✓            |
+| Wenxin    | ERNIE-Bot            | ✗           | ✓        | ✓               | ✓            | ✗                | ✗            |
+
+✓: Supported, ✗: Not supported
 
 ## Key Methods
 
@@ -91,6 +102,8 @@ print(OneSDK.list_providers())
 - `stream_generate(messages, model=None, **kwargs)`: Stream response
 - `count_tokens(model, messages)`: Count tokens
 - `create_completion(model, prompt, **kwargs)`: Legacy API completion
+- `create_embedding(model, input, **kwargs)`: Create embeddings
+- `create_image(prompt, **kwargs)`: Create image (for supported providers)
 - `upload_file(file_path)`: Upload file
 - `set_proxy(proxy_url)`: Set proxy
 - `get_usage()`: Get usage statistics

@@ -1,26 +1,31 @@
 import importlib
 import os
-from typing import Optional, Union, Generator, List, Dict
-from .utils.error_handler import InvokeError, InvokeModelNotFoundError
+from typing import Optional, Union, Generator, List, Dict, Any
+from contextlib import contextmanager
+import asyncio
+
+from .utils.error_handler import InvokeError, InvokeModelNotFoundError, InvokeConfigError
 from .models.base_api import BaseAPI
 from .logger import Logger
+from .config import Config
+
 
 class OneSDK:
-    def __init__(self, provider: str, credentials: dict, debug: bool = False):
+    def __init__(self, provider: str, credentials: Optional[dict] = None, config: Optional[Dict[str, Any]] = None):
         self.provider = provider.lower()
-        self.credentials = credentials
-        Logger.set_debug_mode(debug)
+        self.config = Config(config or {})
+        self.credentials = credentials or {}
+        Logger.set_debug_mode(self.config.get('debug', False))
         self.api = self._initialize_api()
+        self.current_model = None
 
     def _initialize_api(self) -> BaseAPI:
         try:
-            # 动态导入 API 模块
             module = importlib.import_module(f'.models.{self.provider}.api', package=__package__)
-            # 获取 API 类（现在类名统一为 API）
             api_class = getattr(module, 'API')
             return api_class(self.credentials)
         except (ImportError, AttributeError) as e:
-            raise ValueError(f"Unsupported or incorrectly implemented provider: {self.provider}. Error: {str(e)}")
+            raise InvokeConfigError(f"Unsupported or incorrectly implemented provider: {self.provider}. Error: {str(e)}")
 
     def _call_api_method(self, method_name: str, *args, **kwargs):
         if hasattr(self.api, method_name):
@@ -45,19 +50,28 @@ class OneSDK:
                  **kwargs) -> Dict:
         model_to_use = model or self.current_model
         if not model_to_use:
-            raise ValueError("No model specified. Either provide a model parameter or use set_model() method.")
+            raise InvokeConfigError("No model specified. Either provide a model parameter or use set_model() method.")
         if messages is None:
-            raise ValueError("Messages cannot be None")
+            raise InvokeConfigError("Messages cannot be None")
         return self._call_api_method('generate', model_to_use, messages, **kwargs)
 
     def stream_generate(self, model: Optional[str] = None,
                         messages: List[Dict[str, Union[str, List[Dict[str, str]]]]] = None, **kwargs) -> Generator:
         model_to_use = model or self.current_model
         if not model_to_use:
-            raise ValueError("No model specified. Either provide a model parameter or use set_model() method.")
+            raise InvokeConfigError("No model specified. Either provide a model parameter or use set_model() method.")
         if messages is None:
-            raise ValueError("Messages cannot be None")
+            raise InvokeConfigError("Messages cannot be None")
         yield from self._call_api_method('stream_generate', model_to_use, messages, **kwargs)
+
+    async def async_generate(self, model: Optional[str] = None,
+                             messages: List[Dict[str, Union[str, List[Dict[str, str]]]]] = None, **kwargs) -> Dict:
+        model_to_use = model or self.current_model
+        if not model_to_use:
+            raise InvokeConfigError("No model specified. Either provide a model parameter or use set_model() method.")
+        if messages is None:
+            raise InvokeConfigError("Messages cannot be None")
+        return await self._call_api_method('async_generate', model_to_use, messages, **kwargs)
 
     def count_tokens(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]]) -> int:
         """Count the number of tokens in the input messages for the specified model."""
@@ -89,3 +103,32 @@ class OneSDK:
 
     def set_debug_mode(self, debug: bool):
         Logger.set_debug_mode(debug)
+        self.config.set('debug', debug)
+
+    @contextmanager
+    def model_context(self, model: str):
+        """Context manager for temporarily setting a model."""
+        previous_model = self.current_model
+        self.set_model(model)
+        try:
+            yield
+        finally:
+            self.current_model = previous_model
+
+    def create_embedding(self, model: str, input: Union[str, List[str]], **kwargs) -> Dict:
+        """Create embeddings for the given input."""
+        return self._call_api_method('create_embedding', model, input, **kwargs)
+
+    def create_image(self, prompt: str, **kwargs) -> Dict:
+        """Create an image based on the prompt."""
+        return self._call_api_method('create_image', prompt, **kwargs)
+
+    @property
+    def cache(self):
+        if not hasattr(self, '_cache'):
+            self._cache = {}
+        return self._cache
+
+    def clear_cache(self):
+        """Clear the internal cache."""
+        self._cache.clear()
