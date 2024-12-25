@@ -4,6 +4,7 @@ import requests
 import json
 import os
 from urllib.parse import urljoin
+from ...logger import logger
 
 from ...utils.error_handler import (
     InvokeConnectionError,
@@ -30,67 +31,80 @@ class API(BaseAPI):
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
         })
+        logger.info("Qwen API initialized")
 
     def list_models(self) -> List[Dict]:
         """List available models."""
-        # Aliyun doesn't provide an API to list models, so we'll return a predefined list
-        return [
+        models = [
             {"id": "qwen-turbo", "name": "Qwen-Turbo"},
             {"id": "qwen-plus", "name": "Qwen-Plus"},
             {"id": "qwen-max", "name": "Qwen-Max"},
             {"id": "qwen-max-longcontext", "name": "Qwen-Max-LongContext"},
             {"id": "qwen-vl-plus", "name": "Qwen-VL-Plus"},
-            # Add more models as needed
         ]
+        logger.info(f"Available models: {[model['id'] for model in models]}")
+        return models
 
     def get_model(self, model_id: str) -> Dict:
         """Get information about a specific model."""
         models = self.list_models()
         for model in models:
             if model['id'] == model_id:
+                logger.info(f"Model info for {model_id}: {model}")
                 return model
+        logger.error(f"Model {model_id} not found")
         raise ValueError(f"Model {model_id} not found")
 
     def generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
         """Generate a response using the specified model."""
         endpoint = self._get_endpoint(model)
+        logger.info(f"Generating response with model: {model}")
         return self._call_api(endpoint, model, messages, stream=False, **kwargs)
 
     def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]],
                         **kwargs) -> Generator:
         """Generate a streaming response using the specified model."""
         endpoint = self._get_endpoint(model)
-        return self._call_api(endpoint, model, messages, stream=True, **kwargs)
+        logger.info(f"Generating streaming response with model: {model}")
+        yield from self._call_api(endpoint, model, messages, stream=True, **kwargs)
 
     def count_tokens(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]]) -> int:
         """Count tokens in a message."""
-        # Aliyun doesn't provide a token counting API, so we'll estimate
-        # This is a very rough estimate and should be replaced with a more accurate method
-        return sum(len(str(message.get('content', '')).split()) for message in messages)
+        token_count = sum(len(str(message.get('content', '')).split()) for message in messages)
+        logger.info(f"Estimated token count for model {model}: {token_count}")
+        return token_count
 
     def _get_endpoint(self, model: str) -> str:
         if model.startswith('qwen-vl') or model.startswith('qwen-audio'):
-            return self.MULTIMODAL_GENERATION_ENDPOINT
-        return self.TEXT_GENERATION_ENDPOINT
+            endpoint = self.MULTIMODAL_GENERATION_ENDPOINT
+        else:
+            endpoint = self.TEXT_GENERATION_ENDPOINT
+        logger.debug(f"Using endpoint for model {model}: {endpoint}")
+        return endpoint
 
     def _call_api(self, endpoint: str, model: str, messages: List[Dict], stream: bool = False, **kwargs):
         url = urljoin(self.BASE_URL, endpoint)
-
         payload = self._prepare_payload(model, messages, stream, **kwargs)
-
         headers = self.session.headers.copy()
         if stream:
             headers['Accept'] = 'text/event-stream'
+
+        logger.debug(f"Sending request to {url}")
+        logger.debug(f"Headers: {headers}")
+        logger.debug(f"Payload: {json.dumps(payload, indent=2)}")
 
         try:
             response = self.session.post(url, json=payload, headers=headers, stream=stream)
             response.raise_for_status()
 
             if stream:
+                logger.debug("Received streaming response")
                 return self._handle_stream_response(response)
             else:
+                logger.debug("Received non-streaming response")
                 return self._handle_response(response.json())
         except requests.RequestException as e:
+            logger.error(f"Error occurred: {str(e)}")
             self._handle_error(e)
 
     def _prepare_payload(self, model: str, messages: List[Dict], stream: bool, **kwargs):
@@ -104,7 +118,6 @@ class API(BaseAPI):
             }
         }
 
-        # Add optional parameters
         for param in ['temperature', 'top_p', 'top_k', 'repetition_penalty', 'max_tokens', 'stop', 'seed',
                       'enable_search']:
             if param in kwargs:
@@ -119,47 +132,64 @@ class API(BaseAPI):
         if 'tool_choice' in kwargs:
             payload['parameters']['tool_choice'] = kwargs['tool_choice']
 
+        logger.debug(f"Prepared payload: {json.dumps(payload, indent=2)}")
         return payload
 
     def _handle_response(self, response_data: Dict) -> Dict:
-        if response_data['status_code'] != 200:
-            raise InvokeBadRequestError(f"API request failed: {response_data['message']}")
+        choices = response_data.get('output', {}).get('choices', [])
+        if not choices:
+            logger.warning("No choices in response")
+            return {}
 
-        return {
-            'id': response_data['request_id'],
-            'model': response_data['output']['choices'][0]['message'].get('role', 'assistant'),
-            'created': None,  # Aliyun doesn't provide a timestamp
+        choice = choices[0]
+        result = {
+            'id': response_data.get('request_id'),
+            'model': 'qwen',
+            'created': None,
             'choices': [{
                 'index': 0,
-                'message': response_data['output']['choices'][0]['message'],
-                'finish_reason': response_data['output']['choices'][0]['finish_reason']
+                'message': choice.get('message', {}),
+                'finish_reason': choice.get('finish_reason')
             }],
-            'usage': response_data['usage']
+            'usage': response_data.get('usage', {})
         }
+        logger.debug(f"Handled response: {json.dumps(result, indent=2)}")
+        return result
 
     def _handle_stream_response(self, response) -> Generator:
+        logger.debug("Entering _handle_stream_response")
         for line in response.iter_lines():
             if line:
+                logger.debug(f"Received line: {line.decode('utf-8')}")
                 line = line.decode('utf-8')
-                if line.startswith('data: '):
-                    data = json.loads(line[6:])
+                if line.startswith('data:'):
+                    data = json.loads(line[5:])
+                    logger.debug(f"Parsed data: {json.dumps(data, indent=2)}")
                     yield self._handle_response(data)
+        logger.debug("Exiting _handle_stream_response")
 
     def _handle_error(self, error: requests.RequestException):
         if isinstance(error, requests.ConnectionError):
+            logger.error(f"Connection error: {str(error)}")
             raise InvokeConnectionError(str(error))
         elif isinstance(error, requests.Timeout):
+            logger.error(f"Timeout error: {str(error)}")
             raise InvokeConnectionError(str(error))
         elif isinstance(error, requests.HTTPError):
             if error.response.status_code == 429:
+                logger.error(f"Rate limit error: {str(error)}")
                 raise InvokeRateLimitError(str(error))
             elif error.response.status_code in (401, 403):
+                logger.error(f"Authorization error: {str(error)}")
                 raise InvokeAuthorizationError(str(error))
             elif error.response.status_code >= 500:
+                logger.error(f"Server unavailable error: {str(error)}")
                 raise InvokeServerUnavailableError(str(error))
             else:
+                logger.error(f"Bad request error: {str(error)}")
                 raise InvokeBadRequestError(str(error))
         else:
+            logger.error(f"Unknown error: {str(error)}")
             raise InvokeBadRequestError(str(error))
 
     def set_proxy(self, proxy_url: str):
@@ -168,3 +198,4 @@ class API(BaseAPI):
             'http': proxy_url,
             'https': proxy_url
         }
+        logger.info(f"Proxy set to {proxy_url}")

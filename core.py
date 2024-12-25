@@ -3,12 +3,13 @@ import os
 from typing import Optional, Union, Generator, List, Dict
 from .utils.error_handler import InvokeError, InvokeModelNotFoundError
 from .models.base_api import BaseAPI
-
+from .logger import Logger
 
 class OneSDK:
-    def __init__(self, provider: str, credentials: dict):
+    def __init__(self, provider: str, credentials: dict, debug: bool = False):
         self.provider = provider.lower()
         self.credentials = credentials
+        Logger.set_debug_mode(debug)
         self.api = self._initialize_api()
 
     def _initialize_api(self) -> BaseAPI:
@@ -40,35 +41,23 @@ class OneSDK:
         self.current_model = model
         return self
 
-    def generate(self, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], model: Optional[str] = None,
+    def generate(self, model: Optional[str] = None, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]] = None,
                  **kwargs) -> Dict:
-        """Generate a response using the specified or current model."""
         model_to_use = model or self.current_model
         if not model_to_use:
             raise ValueError("No model specified. Either provide a model parameter or use set_model() method.")
-        try:
-            return self._call_api_method('generate', model_to_use, messages, **kwargs)
-        except InvokeError as e:
-            if isinstance(e, InvokeModelNotFoundError):
-                available_models = self.list_models()
-                raise InvokeModelNotFoundError(
-                    f"Model '{model_to_use}' not found. Available models: {[m['id'] for m in available_models]}")
-            raise
+        if messages is None:
+            raise ValueError("Messages cannot be None")
+        return self._call_api_method('generate', model_to_use, messages, **kwargs)
 
-    def stream_generate(self, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], model: Optional[str] = None,
-                        **kwargs) -> Generator:
-        """Generate a streaming response using the specified or current model."""
+    def stream_generate(self, model: Optional[str] = None,
+                        messages: List[Dict[str, Union[str, List[Dict[str, str]]]]] = None, **kwargs) -> Generator:
         model_to_use = model or self.current_model
         if not model_to_use:
             raise ValueError("No model specified. Either provide a model parameter or use set_model() method.")
-        try:
-            yield from self._call_api_method('stream_generate', model_to_use, messages, **kwargs)
-        except InvokeError as e:
-            if isinstance(e, InvokeModelNotFoundError):
-                available_models = self.list_models()
-                raise InvokeModelNotFoundError(
-                    f"Model '{model_to_use}' not found. Available models: {[m['id'] for m in available_models]}")
-            raise
+        if messages is None:
+            raise ValueError("Messages cannot be None")
+        yield from self._call_api_method('stream_generate', model_to_use, messages, **kwargs)
 
     def count_tokens(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]]) -> int:
         """Count the number of tokens in the input messages for the specified model."""
@@ -97,3 +86,6 @@ class OneSDK:
         return [d for d in os.listdir(providers_dir)
                 if os.path.isdir(os.path.join(providers_dir, d))
                 and os.path.exists(os.path.join(providers_dir, d, 'api.py'))]
+
+    def set_debug_mode(self, debug: bool):
+        Logger.set_debug_mode(debug)
