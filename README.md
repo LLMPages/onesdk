@@ -80,16 +80,16 @@ print(f"Token count: {token_count}")
 
 The following table shows the supported providers, their default models, and the methods they support:
 
-| Provider  | Default Model         | list_models | generate | stream_generate | count_tokens | create_embedding | create_image |
-|-----------|----------------------|-------------|----------|-----------------|--------------|------------------|--------------|
-| Anthropic | claude-3-opus-20240229 | ✓           | ✓        | ✓               | ✓            | ✗                | ✗            |
-| Qwen      | qwen-turbo           | ✓           | ✓        | ✓               | ✓            | ✓                | ✗            |
-| Cohere    | command              | ✗           | ✓        | ✓               | ✓            | ✓                | ✗            |
-| Doubao    | doubao-v1            | ✗           | ✓        | ✓               | ✓            | ✓                | ✗            |
-| Gemini    | gemini-pro           | ✗           | ✓        | ✓               | ✗            | ✗                | ✗            |
-| Minimax   | abab5-chat           | ✗           | ✓        | ✓               | ✓            | ✓                | ✓            |
-| OpenAI    | gpt-3.5-turbo        | ✓           | ✓        | ✓               | ✓            | ✓                | ✓            |
-| Wenxin    | ERNIE-Bot            | ✗           | ✓        | ✓               | ✓            | ✗                | ✗            |
+| Provider  | list_models | generate | stream_generate | count_tokens | create_embedding | create_image |
+|-----------|-------------|----------|-----------------|--------------|------------------|--------------|
+| Anthropic | ✓           | ✓        | ✓               | ✓            | ✗                | ✗            |
+| Qwen      | ✓           | ✓        | ✓               | ✓            | ✓                | ✗            |
+| Cohere    | ✗           | ✓        | ✓               | ✓            | ✓                | ✗            |
+| Doubao    | ✗           | ✓        | ✓               | ✓            | ✓                | ✗            |
+| Gemini    | ✗           | ✓        | ✓               | ✗            | ✗                | ✗            |
+| Minimax   | ✗           | ✓        | ✓               | ✓            | ✓                | ✓            |
+| OpenAI    | ✓           | ✓        | ✓               | ✓            | ✓                | ✓            |
+| Wenxin    | ✗           | ✓        | ✓               | ✓            | ✗                | ✗            |
 
 ✓: Supported, ✗: Not supported
 
