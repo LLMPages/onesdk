@@ -12,7 +12,7 @@ Qwen, developed by Alibaba Cloud, provides access to powerful language models th
 To use the Qwen API, initialize the OneSDK with your Qwen API key:
 
 ```python
-from onesdk import OneSDK
+from llm_onesdk import OneSDK
 
 qwen_sdk = OneSDK("qwen", {"api_key": "your_api_key_here"})
 ```

@@ -11,7 +11,7 @@ Google's Gemini provides access to powerful language models through its API. Thi
 To use the Gemini API, initialize the OneSDK with your Gemini API key:
 
 ```python
-from onesdk import OneSDK
+from llm_onesdk import OneSDK
 
 gemini_sdk = OneSDK("gemini", {"api_key": "your_api_key_here"})
 ```

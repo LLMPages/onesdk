@@ -11,7 +11,7 @@ MiniMax provides access to its language models through an API. This document out
 To use the MiniMax API, initialize the OneSDK with your MiniMax API key and group ID:
 
 ```python
-from onesdk import OneSDK
+from llm_onesdk import OneSDK
 
 minimax_sdk = OneSDK("minimax", {
     "api_key": "your_api_key_here",

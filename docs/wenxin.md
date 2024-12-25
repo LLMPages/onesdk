@@ -12,7 +12,7 @@ Wenxin, developed by Baidu, provides access to powerful language models through 
 To use the Wenxin API, initialize the OneSDK with your Wenxin API key and secret key:
 
 ```python
-from onesdk import OneSDK
+from llm_onesdk import OneSDK
 
 wenxin_sdk = OneSDK("wenxin", {
     "api_key": "your_api_key_here",

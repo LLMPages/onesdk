@@ -1,14 +1,14 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="llm-onesdk",
-    version="0.0.2",
+    name="llm_onesdk",
+    version="0.0.3",
     author="anycodes",
     author_email="liuyu@xmail.tech",
     description="OneSDK is a Python library that provides a unified interface for interacting with various Large Language Model (LLM) providers.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/LLMPages/onesdk",
+    url="https://onesdk.llmpages.cn/",
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

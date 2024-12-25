@@ -12,7 +12,7 @@ Kimi (by Moonshot AI) provides access to its language models through an API. Thi
 To use the Kimi API, initialize the OneSDK with your Kimi API key:
 
 ```python
-from onesdk import OneSDK
+from llm_onesdk import OneSDK
 
 kimi_sdk = OneSDK("kimi", {"api_key": "your_api_key_here"})
 ```

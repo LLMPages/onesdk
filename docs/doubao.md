@@ -11,7 +11,7 @@ Doubao provides access to its language models through an API. This document outl
 To use the Doubao API, initialize the OneSDK with your Doubao API key:
 
 ```python
-from onesdk import OneSDK
+from llm_onesdk import OneSDK
 
 doubao_sdk = OneSDK("doubao", {"api_key": "your_api_key_here"})
 ```
