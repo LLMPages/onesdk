@@ -6,14 +6,30 @@
     <title>OneSDK Documentation</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
             color: #333;
-            max-width: 800px;
-            margin: 0 auto;
+            display: flex;
+            margin: 0;
+            padding: 0;
+        }
+        #sidebar {
+            width: 250px;
+            height: 100vh;
+            overflow-y: auto;
             padding: 20px;
+            background-color: #f4f4f4;
+            position: fixed;
+        }
+        #content {
+            margin-left: 250px;
+            padding: 20px;
+            max-width: 800px;
         }
         pre {
             background-color: #f4f4f4;
@@ -25,12 +41,28 @@
         code {
             font-family: Consolas, Monaco, 'Andale Mono', monospace;
         }
+        #sidebar ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #sidebar ul li {
+            margin-bottom: 10px;
+        }
+        #sidebar ul li a {
+            text-decoration: none;
+            color: #333;
+        }
+        #sidebar ul li a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
+    <div id="sidebar"></div>
     <div id="content"></div>
     <script>
         const contentDiv = document.getElementById('content');
+        const sidebarDiv = document.getElementById('sidebar');
         let markdownFile = 'README.md';
 
         // 检查 URL 中是否有指定的文件
@@ -52,10 +84,37 @@
                         link.href = '?file=' + fileName;
                     }
                 });
+
+                // 代码高亮
+                Prism.highlightAll();
+
+                // 生成目录
+                generateTableOfContents();
             })
             .catch(error => {
                 contentDiv.innerHTML = `<p>Error loading markdown: ${error}</p>`;
             });
+
+        function generateTableOfContents() {
+            const headings = contentDiv.querySelectorAll('h1, h2, h3');
+            const toc = document.createElement('ul');
+            
+            headings.forEach((heading, index) => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.textContent = heading.textContent;
+                a.href = `#heading-${index}`;
+                a.style.paddingLeft = `${(heading.tagName.charAt(1) - 1) * 20}px`;
+                li.appendChild(a);
+                toc.appendChild(li);
+
+                // 为每个标题添加 id
+                heading.id = `heading-${index}`;
+            });
+
+            sidebarDiv.innerHTML = '<h2>Table of Contents</h2>';
+            sidebarDiv.appendChild(toc);
+        }
     </script>
 </body>
 </html>
