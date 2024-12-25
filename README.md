@@ -1,17 +1,17 @@
 # OneSDK: Unified LLM API Interface
 
-OneSDK is a Python library that provides a unified interface for interacting with various Large Language Model (LLM) providers. It simplifies the process of working with different LLM APIs by offering a consistent set of methods across providers.
+OneSDK is a Python library providing a unified interface for various Large Language Model (LLM) providers. It simplifies interactions with different LLM APIs through a consistent set of methods.
 
 ## Features
 
 - Unified API for multiple LLM providers
-- Flexible usage patterns: specify model per call or set a default model
-- Easy-to-use interface for common LLM operations
-- Support for both synchronous and streaming text generation
+- Flexible usage: per-call model specification or default model setting
+- Intuitive interface for common LLM operations
+- Synchronous and streaming text generation support
 - Token counting functionality
-- File upload capability (where supported)
+- File upload capability (provider-dependent)
 - Proxy setting for API calls
-- Usage statistics retrieval (where available)
+- Usage statistics retrieval (provider-dependent)
 
 ## Installation
 
@@ -23,15 +23,13 @@ pip install llm-onesdk
 
 OneSDK supports two main usage patterns:
 
-### Pattern 1: Specify model for each call
+### 1. Specify model for each call
 
 ```python
-from llm-onesdk import OneSDK
+from llm_onesdk import OneSDK
 
-# Initialize the SDK with your chosen provider and credentials
 sdk = OneSDK("anthropic", {"api_key": "your-api-key"})
 
-# Generate text
 response = sdk.generate(
     model="claude-2",
     messages=[{"role": "user", "content": "Tell me a joke about programming."}]
@@ -39,16 +37,14 @@ response = sdk.generate(
 print(response['choices'][0]['message']['content'])
 ```
 
-### Pattern 2: Set a default model
+### 2. Set a default model
 
 ```python
-from llm-onesdk import OneSDK
+from llm_onesdk import OneSDK
 
-# Initialize the SDK and set a default model
 sdk = OneSDK("anthropic", {"api_key": "your-api-key"})
 sdk.set_model("claude-2")
 
-# Generate text using the default model
 response = sdk.generate(
     messages=[{"role": "user", "content": "Tell me a joke about programming."}]
 )
@@ -57,20 +53,18 @@ print(response['choices'][0]['message']['content'])
 
 ## Streaming Generation
 
-Both patterns support streaming generation:
-
 ```python
 for chunk in sdk.stream_generate(
-    model="claude-2",  # or omit if using set_model()
+    model="claude-2",  # Optional if using set_model()
     messages=[{"role": "user", "content": "Write a short story about AI."}]
 ):
     print(chunk['choices'][0]['message']['content'], end='', flush=True)
 ```
 
-## Other Operations
+## Additional Operations
 
 ```python
-# List available models
+# List models
 models = sdk.list_models()
 print(models)
 
@@ -84,33 +78,31 @@ print(f"Token count: {token_count}")
 
 ## Supported Providers
 
-You can list all available providers using:
-
 ```python
 print(OneSDK.list_providers())
 ```
 
-## Methods
+## Key Methods
 
-- `set_model(model)`: Set the default model for subsequent API calls.
-- `list_models()`: List available models for the current provider.
-- `get_model_info(model_id)`: Get information about a specific model.
-- `generate(messages, model=None, **kwargs)`: Generate a response using the specified or default model.
-- `stream_generate(messages, model=None, **kwargs)`: Generate a streaming response.
-- `count_tokens(model, messages)`: Count the number of tokens in the input messages.
-- `create_completion(model, prompt, **kwargs)`: Create a completion using the legacy API (if supported).
-- `upload_file(file_path)`: Upload a file and return a reference.
-- `set_proxy(proxy_url)`: Set a proxy for API calls.
-- `get_usage()`: Get usage statistics for the current account.
+- `set_model(model)`: Set default model
+- `list_models()`: List available models
+- `get_model_info(model_id)`: Get model information
+- `generate(messages, model=None, **kwargs)`: Generate response
+- `stream_generate(messages, model=None, **kwargs)`: Stream response
+- `count_tokens(model, messages)`: Count tokens
+- `create_completion(model, prompt, **kwargs)`: Legacy API completion
+- `upload_file(file_path)`: Upload file
+- `set_proxy(proxy_url)`: Set proxy
+- `get_usage()`: Get usage statistics
 
 ## Error Handling
 
-OneSDK uses custom exception classes for error handling. The base exception class is `InvokeError`, with specific subclasses for different error types (e.g., `InvokeModelNotFoundError`).
+OneSDK uses custom exceptions inheriting from `InvokeError` (e.g., `InvokeModelNotFoundError`).
 
 ## Contributing
 
-We welcome contributions, especially new provider integrations! Please see our [Contributing Guide](CONTRIBUTING.md) for more information on how to get started.
+We welcome contributions, especially new provider integrations! See our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is under the MIT License. See the [LICENSE](LICENSE) file for details.
