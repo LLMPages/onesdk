@@ -66,6 +66,10 @@ class InvokeUnsupportedOperationError(InvokeError):
     """Raised when an unsupported operation is attempted."""
     pass
 
+class InvokeConfigError(InvokeError):
+    """Raised when there's a configuration error."""
+    pass
+
 def handle_api_error(error: Exception) -> InvokeError:
     """
     Convert provider-specific errors to our custom InvokeError types.

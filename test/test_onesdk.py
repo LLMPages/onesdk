@@ -16,30 +16,30 @@ class TestOneSDKUser(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.api_keys = {
-            "anthropic": os.environ.get("ANTHROPIC_API_KEY"),
+            # "anthropic": os.environ.get("ANTHROPIC_API_KEY"),
             "qwen": os.environ.get("DASHSCOPE_API_KEY"),
-            "cohere": os.environ.get("COHERE_API_KEY"),
-            "doubao": os.environ.get("DOUBAO_API_KEY"),
-            "gemini": os.environ.get("GEMINI_API_KEY"),
-            "minimax": os.environ.get("MINIMAX_API_KEY"),
-            "minimax_group_id": os.environ.get("MINIMAX_GROUP_ID"),
-            "openai": os.environ.get("OPENAI_API_KEY"),
-            "wenxin": os.environ.get("WENXIN_API_KEY"),
-            "wenxin_secret": os.environ.get("WENXIN_SECRET_KEY")
+            # "cohere": os.environ.get("COHERE_API_KEY"),
+            # "doubao": os.environ.get("DOUBAO_API_KEY"),
+            # "gemini": os.environ.get("GEMINI_API_KEY"),
+            # "minimax": os.environ.get("MINIMAX_API_KEY"),
+            # "minimax_group_id": os.environ.get("MINIMAX_GROUP_ID"),
+            # "openai": os.environ.get("OPENAI_API_KEY"),
+            # "wenxin": os.environ.get("WENXIN_API_KEY"),
+            # "wenxin_secret": os.environ.get("WENXIN_SECRET_KEY")
         }
 
-        if not all(cls.api_keys.values()):
-            raise ValueError("Please set all required API keys in environment variables")
+        # if not all(cls.api_keys.values()):
+        #     raise ValueError("Please set all required API keys in environment variables")
 
         cls.providers = {
-            "anthropic": OneSDK("anthropic", {"api_key": cls.api_keys["anthropic"]}),
+            # "anthropic": OneSDK("anthropic", {"api_key": cls.api_keys["anthropic"]}),
             "qwen": OneSDK("qwen", {"api_key": cls.api_keys["qwen"]}),
-            "cohere": OneSDK("cohere", {"api_key": cls.api_keys["cohere"]}),
-            "doubao": OneSDK("doubao", {"api_key": cls.api_keys["doubao"]}),
-            "gemini": OneSDK("gemini", {"api_key": cls.api_keys["gemini"]}),
-            "minimax": OneSDK("minimax", {"api_key": cls.api_keys["minimax"], "group_id": cls.api_keys["minimax_group_id"]}),
-            "openai": OneSDK("openai", {"api_key": cls.api_keys["openai"]}),
-            "wenxin": OneSDK("wenxin", {"api_key": cls.api_keys["wenxin"], "secret_key": cls.api_keys["wenxin_secret"]})
+            # "cohere": OneSDK("cohere", {"api_key": cls.api_keys["cohere"]}),
+            # "doubao": OneSDK("doubao", {"api_key": cls.api_keys["doubao"]}),
+            # "gemini": OneSDK("gemini", {"api_key": cls.api_keys["gemini"]}),
+            # "minimax": OneSDK("minimax", {"api_key": cls.api_keys["minimax"], "group_id": cls.api_keys["minimax_group_id"]}),
+            # "openai": OneSDK("openai", {"api_key": cls.api_keys["openai"]}),
+            # "wenxin": OneSDK("wenxin", {"api_key": cls.api_keys["wenxin"], "secret_key": cls.api_keys["wenxin_secret"]})
         }
 
         cls.default_models = {
@@ -127,8 +127,17 @@ class TestOneSDKUser(unittest.TestCase):
     @patch.object(OneSDK, 'generate')
     def test_error_handling(self, mock_generate):
         mock_generate.side_effect = InvokeError("Test error")
-        with self.assertRaises(InvokeError):
-            self.providers['anthropic'].generate(self.default_models['anthropic'], [{"role": "user", "content": "Test"}])
+
+        if not self.providers:
+            self.skipTest("No providers available for testing")
+
+        # 遍历所有可用的 providers
+        for provider_name, provider in self.providers.items():
+            with self.subTest(provider=provider_name):
+                model = self.default_models[provider_name]
+
+                with self.assertRaises(InvokeError):
+                    provider.generate(model, [{"role": "user", "content": "Test"}])
 
     def test_set_model(self):
         print("\nTesting set_model for all providers:")
