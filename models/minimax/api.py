@@ -1,15 +1,17 @@
 import os
 import requests
+import json
 from typing import List, Dict, Union, Generator, BinaryIO
 from urllib.parse import urljoin
 from ...utils.error_handler import (
+    InvokeError,
     InvokeConnectionError,
     InvokeServerUnavailableError,
     InvokeRateLimitError,
     InvokeAuthorizationError,
     InvokeBadRequestError,
 )
-from ...logger import logger
+from ...utils.logger import logger
 from ..base_api import BaseAPI
 
 class API(BaseAPI):
@@ -48,11 +50,13 @@ class API(BaseAPI):
         logger.info(f"Creating embedding with model: {model}")
         return self._call_api("embedding/create_knowledge_base", model=model, input=input, **kwargs)
 
+    @BaseAPI.provider_specific
     def text_to_speech(self, text: str, voice_id: str, **kwargs) -> Dict:
         """Convert text to speech."""
         logger.info(f"Converting text to speech with voice: {voice_id}")
         return self._call_api("text_to_speech", text=text, voice_id=voice_id, **kwargs)
 
+    @BaseAPI.provider_specific
     def create_image(self, prompt: str, **kwargs) -> Dict:
         """Create an image based on the prompt."""
         logger.info(f"Creating image with prompt: {prompt}")
@@ -125,7 +129,7 @@ class API(BaseAPI):
                 return response.json()
         except requests.RequestException as e:
             logger.error(f"API call error: {str(e)}")
-            self._handle_error(e)
+            raise self._handle_error(e)
 
     def _handle_stream_response(self, response) -> Generator:
         logger.debug("Entering _handle_stream_response")
@@ -135,22 +139,22 @@ class API(BaseAPI):
                 yield json.loads(line.decode('utf-8'))
         logger.debug("Exiting _handle_stream_response")
 
-    def _handle_error(self, error: requests.RequestException):
+    def _handle_error(self, error: requests.RequestException) -> InvokeError:
         if isinstance(error, requests.ConnectionError):
-            raise InvokeConnectionError(str(error))
+            return InvokeConnectionError(str(error))
         elif isinstance(error, requests.Timeout):
-            raise InvokeConnectionError(str(error))
+            return InvokeConnectionError(str(error))
         elif isinstance(error, requests.HTTPError):
             if error.response.status_code == 429:
-                raise InvokeRateLimitError(str(error))
+                return InvokeRateLimitError(str(error))
             elif error.response.status_code in (401, 403):
-                raise InvokeAuthorizationError(str(error))
+                return InvokeAuthorizationError(str(error))
             elif error.response.status_code >= 500:
-                raise InvokeServerUnavailableError(str(error))
+                return InvokeServerUnavailableError(str(error))
             else:
-                raise InvokeBadRequestError(str(error))
+                return InvokeBadRequestError(str(error))
         else:
-            raise InvokeBadRequestError(str(error))
+            return InvokeError(str(error))
 
     def set_proxy(self, proxy_url: str):
         """Set a proxy for API calls."""

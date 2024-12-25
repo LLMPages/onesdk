@@ -4,16 +4,15 @@ import requests
 import json
 import os
 from urllib.parse import urljoin
-from ...logger import logger
-
+from ...utils.logger import logger
 from ...utils.error_handler import (
+    InvokeError,
     InvokeConnectionError,
     InvokeServerUnavailableError,
     InvokeRateLimitError,
     InvokeAuthorizationError,
     InvokeBadRequestError,
 )
-
 
 class API(BaseAPI):
     BASE_URL = "https://dashscope.aliyuncs.com/api/v1/services/aigc/"
@@ -83,7 +82,7 @@ class API(BaseAPI):
                 return self._handle_response(response.json())
         except requests.RequestException as e:
             logger.error(f"Error occurred: {str(e)}")
-            self._handle_error(e)
+            raise self._handle_error(e)
 
     def _prepare_payload(self, model: str, messages: List[Dict], stream: bool, **kwargs):
         payload = {
@@ -146,29 +145,29 @@ class API(BaseAPI):
                     yield self._handle_response(data)
         logger.debug("Exiting _handle_stream_response")
 
-    def _handle_error(self, error: requests.RequestException):
+    def _handle_error(self, error: requests.RequestException) -> InvokeError:
         if isinstance(error, requests.ConnectionError):
             logger.error(f"Connection error: {str(error)}")
-            raise InvokeConnectionError(str(error))
+            return InvokeConnectionError(str(error))
         elif isinstance(error, requests.Timeout):
             logger.error(f"Timeout error: {str(error)}")
-            raise InvokeConnectionError(str(error))
+            return InvokeConnectionError(str(error))
         elif isinstance(error, requests.HTTPError):
             if error.response.status_code == 429:
                 logger.error(f"Rate limit error: {str(error)}")
-                raise InvokeRateLimitError(str(error))
+                return InvokeRateLimitError(str(error))
             elif error.response.status_code in (401, 403):
                 logger.error(f"Authorization error: {str(error)}")
-                raise InvokeAuthorizationError(str(error))
+                return InvokeAuthorizationError(str(error))
             elif error.response.status_code >= 500:
                 logger.error(f"Server unavailable error: {str(error)}")
-                raise InvokeServerUnavailableError(str(error))
+                return InvokeServerUnavailableError(str(error))
             else:
                 logger.error(f"Bad request error: {str(error)}")
-                raise InvokeBadRequestError(str(error))
+                return InvokeBadRequestError(str(error))
         else:
             logger.error(f"Unknown error: {str(error)}")
-            raise InvokeBadRequestError(str(error))
+            return InvokeError(str(error))
 
     def set_proxy(self, proxy_url: str):
         """Set a proxy for API calls."""

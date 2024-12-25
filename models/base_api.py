@@ -1,8 +1,8 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import List, Dict, Union, Generator, Any, BinaryIO
 import requests
 import os
-from ..logger import logger
+from ..utils.logger import logger
 from ..utils.error_handler import (
     InvokeConnectionError,
     InvokeServerUnavailableError,
@@ -12,35 +12,45 @@ from ..utils.error_handler import (
     InvokeUnsupportedOperationError,
 )
 
+def provider_specific(func):
+    func._provider_specific = True
+    return func
+
 class BaseAPI(ABC):
     def __init__(self, credentials: Dict[str, str]):
         self.credentials = credentials
         self.session = requests.Session()
         self.setup_credentials()
 
+    @abstractmethod
     def setup_credentials(self):
         """Setup API credentials"""
-        raise InvokeUnsupportedOperationError("Credential setup not implemented for this provider")
+        pass
 
+    @abstractmethod
     def list_models(self) -> List[Dict]:
         """List available models."""
-        raise InvokeUnsupportedOperationError("Model listing not supported for this provider")
+        pass
 
+    @abstractmethod
     def get_model(self, model_id: str) -> Dict:
         """Get information about a specific model."""
-        raise InvokeUnsupportedOperationError("Model info retrieval not supported for this provider")
+        pass
 
+    @abstractmethod
     def generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
         """Generate a response using the specified model."""
-        raise InvokeUnsupportedOperationError("Text generation not supported for this provider")
+        pass
 
+    @abstractmethod
     def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Generator:
         """Generate a streaming response using the specified model."""
-        raise InvokeUnsupportedOperationError("Streaming text generation not supported for this provider")
+        pass
 
+    @abstractmethod
     def count_tokens(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]]) -> int:
         """Count the number of tokens in the input messages for the specified model."""
-        raise InvokeUnsupportedOperationError("Token counting not supported for this provider")
+        pass
 
     def create_completion(self, model: str, prompt: str, **kwargs) -> Dict:
         """Create a completion using the legacy API (if supported by the provider)."""
@@ -105,6 +115,14 @@ class BaseAPI(ABC):
             'https': proxy_url
         }
         logger.info(f"Proxy set to {proxy_url}")
+
+    def custom_operation(self, operation: str, **kwargs):
+        """Perform a custom operation specific to this provider."""
+        raise InvokeUnsupportedOperationError("Custom operations are not implemented for this provider")
+
+    @classmethod
+    def get_provider_specific_methods(cls):
+        return [name for name, method in cls.__dict__.items() if getattr(method, '_provider_specific', False)]
 
     def _call_api(self, endpoint: str, method: str = "POST", **kwargs):
         """Base method for making API calls"""

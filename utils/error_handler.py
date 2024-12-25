@@ -62,62 +62,25 @@ class InvokeInvalidParameterError(InvokeError):
     """Raised when an invalid parameter is provided in the API call."""
     pass
 
-def handle_api_error(error: Exception, provider: str) -> InvokeError:
+class InvokeUnsupportedOperationError(InvokeError):
+    """Raised when an unsupported operation is attempted."""
+    pass
+
+def handle_api_error(error: Exception) -> InvokeError:
     """
     Convert provider-specific errors to our custom InvokeError types.
+    This function should be implemented in each provider's specific API module.
     """
+    # Default error handling
     error_message = str(error)
-    error_type = type(error).__name__
     http_status = getattr(error, 'status_code', None) if hasattr(error, 'status_code') else None
 
-    # Common error handling
     if isinstance(error, ConnectionError):
         return InvokeConnectionError(f"Connection error occurred: {error_message}", 
                                      error_code="CONNECTION_ERROR", http_status=http_status)
     elif isinstance(error, TimeoutError):
         return InvokeTimeoutError(f"Request timed out: {error_message}", 
                                   error_code="TIMEOUT", http_status=http_status)
-
-    # Provider-specific error handling
-    if provider.lower() == "anthropic":
-        return _handle_anthropic_error(error_message, error_type, http_status)
-    elif provider.lower() == "openai":
-        return _handle_openai_error(error_message, error_type, http_status)
-    # Add more providers as needed
-    else:
-        return InvokeAPIError(f"Unhandled {provider} API error occurred: {error_message}", 
-                              error_code="UNKNOWN_ERROR", http_status=http_status)
-
-def _handle_anthropic_error(error_message: str, error_type: str, http_status: Optional[int]) -> InvokeError:
-    if "rate limit" in error_message.lower():
-        return InvokeRateLimitError(f"Rate limit exceeded: {error_message}", 
-                                    error_code="RATE_LIMIT_EXCEEDED", http_status=http_status)
-    elif "unauthorized" in error_message.lower() or "forbidden" in error_message.lower():
-        return InvokeAuthorizationError(f"Authorization error: {error_message}", 
-                                        error_code="UNAUTHORIZED", http_status=http_status)
-    elif "not found" in error_message.lower():
-        if "model" in error_message.lower():
-            return InvokeModelNotFoundError(f"Model not found: {error_message}", 
-                                            error_code="MODEL_NOT_FOUND", http_status=http_status)
-        else:
-            return InvokeBadRequestError(f"Resource not found: {error_message}", 
-                                         error_code="RESOURCE_NOT_FOUND", http_status=http_status)
-    elif "bad request" in error_message.lower():
-        return InvokeBadRequestError(f"Bad request: {error_message}", 
-                                     error_code="BAD_REQUEST", http_status=http_status)
-    elif "server error" in error_message.lower():
-        return InvokeServerUnavailableError(f"Server error: {error_message}", 
-                                            error_code="SERVER_ERROR", http_status=http_status)
     else:
         return InvokeAPIError(f"API error occurred: {error_message}", 
                               error_code="UNKNOWN_ERROR", http_status=http_status)
-
-def _handle_openai_error(error_message: str, error_type: str, http_status: Optional[int]) -> InvokeError:
-    # Add OpenAI specific error handling here
-    # This is just an example, adjust according to actual OpenAI error patterns
-    if "rate limit" in error_message.lower():
-        return InvokeRateLimitError(f"Rate limit exceeded: {error_message}", 
-                                    error_code="RATE_LIMIT_EXCEEDED", http_status=http_status)
-    # Add more OpenAI specific error handling...
-    return InvokeAPIError(f"OpenAI API error occurred: {error_message}", 
-                          error_code="UNKNOWN_ERROR", http_status=http_status)

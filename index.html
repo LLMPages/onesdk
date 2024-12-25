@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OneSDK Documentation</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 10px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div id="content"></div>
+    <script>
+        const contentDiv = document.getElementById('content');
+        let markdownFile = 'README.md';
+
+        // 检查 URL 中是否有指定的文件
+        const urlParams = new URLSearchParams(window.location.search);
+        const file = urlParams.get('file');
+        if (file) {
+            markdownFile = 'docs/' + file;  // 添加 'docs/' 前缀
+        }
+
+        fetch(markdownFile)
+            .then(response => response.text())
+            .then(markdown => {
+                contentDiv.innerHTML = DOMPurify.sanitize(marked.parse(markdown));
+                
+                // 修改所有链接
+                document.querySelectorAll('#content a').forEach(link => {
+                    if (link.href.endsWith('.md')) {
+                        const fileName = link.href.split('/').pop();
+                        link.href = '?file=' + fileName;
+                    }
+                });
+            })
+            .catch(error => {
+                contentDiv.innerHTML = `<p>Error loading markdown: ${error}</p>`;
+            });
+    </script>
+</body>
+</html>
