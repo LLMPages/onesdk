@@ -22,4 +22,7 @@ setup(
         "typing-extensions>=3.7.4",
         "unittest2>=1.1.0",
     ],
+    project_urls={
+        "GitHub": "https://github.com/LLMPages/onesdk",
+    },
 )
