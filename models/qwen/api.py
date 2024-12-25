@@ -12,7 +12,9 @@ from ...utils.error_handler import (
     InvokeRateLimitError,
     InvokeAuthorizationError,
     InvokeBadRequestError,
+    InvokeUnsupportedOperationError
 )
+
 
 class API(BaseAPI):
     BASE_URL = "https://dashscope.aliyuncs.com/api/v1/services/aigc/"
@@ -37,26 +39,14 @@ class API(BaseAPI):
         pass
 
     def list_models(self) -> List[Dict]:
-        """List available models."""
-        models = [
-            {"id": "qwen-turbo", "name": "Qwen-Turbo"},
-            {"id": "qwen-plus", "name": "Qwen-Plus"},
-            {"id": "qwen-max", "name": "Qwen-Max"},
-            {"id": "qwen-max-longcontext", "name": "Qwen-Max-LongContext"},
-            {"id": "qwen-vl-plus", "name": "Qwen-VL-Plus"},
-        ]
-        logger.info(f"Available models: {[model['id'] for model in models]}")
-        return models
+        """List available models for Doubao."""
+        # Implement if Qwen supports listing models, otherwise:
+        raise InvokeUnsupportedOperationError("Listing models is not supported by Qwen API")
 
     def get_model(self, model_id: str) -> Dict:
         """Get information about a specific model."""
-        models = self.list_models()
-        for model in models:
-            if model['id'] == model_id:
-                logger.info(f"Model info for {model_id}: {model}")
-                return model
-        logger.error(f"Model {model_id} not found")
-        raise ValueError(f"Model {model_id} not found")
+        # Implement if Qwen supports getting model info, otherwise:
+        raise InvokeUnsupportedOperationError("Getting model information is not supported by Qwen API")
 
     def generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
         """Generate a response using the specified model."""

@@ -61,6 +61,39 @@ class API(BaseAPI):
                 payload[param] = kwargs[param]
         return self._call_api("chat/completions", **payload)
 
+    @provider_specific
+    def tokenize(self, model: str, text: Union[str, List[str]]) -> Dict:
+        """
+        Tokenize the given text using the specified model.
+
+        Args:
+            model (str): The model to use for tokenization.
+            text (Union[str, List[str]]): The text or list of texts to tokenize.
+
+        Returns:
+            Dict: A dictionary containing the tokenization results.
+        """
+        logger.info(f"Tokenizing text with model: {model}")
+
+        if isinstance(text, str):
+            text = [text]
+
+        payload = {
+            "model": model,
+            "text": text
+        }
+
+        try:
+            response = self._call_api("tokenization", **payload)
+            if 'data' not in response or not response['data']:
+                raise InvokeError("Unexpected response format from tokenization API")
+
+            logger.info(f"Tokenization completed for {len(text)} text(s)")
+            return response
+        except Exception as e:
+            logger.error(f"Error in tokenize: {str(e)}")
+            raise
+
     def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Generator:
         """Generate a streaming response using the specified model."""
         logger.info(f"Generating streaming response with model: {model}")
