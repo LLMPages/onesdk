@@ -12,7 +12,7 @@ OpenAI provides access to powerful language models through its API. This documen
 To use the OpenAI API, initialize the OneSDK with your OpenAI API key:
 
 ```python
-from onesdk import OneSDK
+from llm_onesdk import OneSDK
 
 openai_sdk = OneSDK("openai", {"api_key": "your_api_key_here"})
 ```

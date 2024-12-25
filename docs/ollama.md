@@ -12,7 +12,7 @@ Ollama provides access to open-source language models that can be run locally. T
 To use the Ollama API, initialize the OneSDK. Note that Ollama typically doesn't require an API key as it runs locally:
 
 ```python
-from onesdk import OneSDK
+from llm_onesdk import OneSDK
 
 ollama_sdk = OneSDK("ollama", {})
 ```

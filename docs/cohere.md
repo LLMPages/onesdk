@@ -11,7 +11,7 @@ Cohere provides access to its language models through an API. This document outl
 To use the Cohere API, initialize the OneSDK with your Cohere API key:
 
 ```python
-from onesdk import OneSDK
+from llm_onesdk import OneSDK
 
 cohere_sdk = OneSDK("cohere", {"api_key": "your_api_key_here"})
 ```

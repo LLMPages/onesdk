@@ -18,7 +18,7 @@ OneSDK is a Python library providing a unified interface for various Large Langu
 ## Installation
 
 ```bash
-pip install llm-onesdk
+pip install llm_onesdk
 ```
 
 ## Quick Start

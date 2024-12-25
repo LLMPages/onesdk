@@ -11,7 +11,7 @@ Anthropic provides access to powerful language models through their API. This do
 To use the Anthropic API, you first need to initialize the OneSDK with your Anthropic API key:
 
 ```python
-from onesdk import OneSDK
+from llm_onesdk import OneSDK
 
 anthropic_sdk = OneSDK("anthropic", {"api_key": "your_api_key_here"})
 ```

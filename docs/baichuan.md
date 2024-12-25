@@ -11,7 +11,7 @@ Baichuan provides access to its language models through an API. This document ou
 To use the Baichuan API, initialize the OneSDK with your Baichuan API key:
 
 ```python
-from onesdk import OneSDK
+from llm_onesdk import OneSDK
 
 baichuan_sdk = OneSDK("baichuan", {"api_key": "your_api_key_here"})
 ```
