@@ -6,14 +6,15 @@
     <title>OneSDK Documentation</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
             line-height: 1.6;
-            color: #333;
+            color: #24292e;
             display: flex;
             margin: 0;
             padding: 0;
@@ -23,23 +24,17 @@
             height: 100vh;
             overflow-y: auto;
             padding: 20px;
-            background-color: #f4f4f4;
+            background-color: #f6f8fa;
             position: fixed;
+            left: 0;
+            top: 0;
+            border-right: 1px solid #e1e4e8;
         }
         #content {
-            margin-left: 250px;
+            margin-left: 290px; /* Increased to prevent overlap */
             padding: 20px;
             max-width: 800px;
-        }
-        pre {
-            background-color: #f4f4f4;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            padding: 10px;
-            overflow-x: auto;
-        }
-        code {
-            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            width: calc(100% - 290px);
         }
         #sidebar ul {
             list-style-type: none;
@@ -50,16 +45,48 @@
         }
         #sidebar ul li a {
             text-decoration: none;
-            color: #333;
+            color: #0366d6;
         }
         #sidebar ul li a:hover {
             text-decoration: underline;
+        }
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+        }
+        @media (max-width: 767px) {
+            .markdown-body {
+                padding: 15px;
+            }
+        }
+        /* Override table styles */
+        .markdown-body table {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+            overflow: auto;
+        }
+        .markdown-body table th,
+        .markdown-body table td {
+            padding: 6px 13px;
+            border: 1px solid #dfe2e5;
+        }
+        .markdown-body table tr {
+            background-color: #fff;
+            border-top: 1px solid #c6cbd1;
+        }
+        .markdown-body table tr:nth-child(2n) {
+            background-color: #f6f8fa;
         }
     </style>
 </head>
 <body>
     <div id="sidebar"></div>
-    <div id="content"></div>
+    <div id="content" class="markdown-body"></div>
     <script>
         const contentDiv = document.getElementById('content');
         const sidebarDiv = document.getElementById('sidebar');
