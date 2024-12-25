@@ -1,15 +1,17 @@
 import os
 import requests
+import json
 from typing import List, Dict, Union, Generator, BinaryIO
 from urllib.parse import urljoin
 from ...utils.error_handler import (
+    InvokeError,
     InvokeConnectionError,
     InvokeServerUnavailableError,
     InvokeRateLimitError,
     InvokeAuthorizationError,
     InvokeBadRequestError,
 )
-from ...logger import logger
+from ...utils.logger import logger
 from ..base_api import BaseAPI
 
 class API(BaseAPI):
@@ -65,11 +67,13 @@ class API(BaseAPI):
         logger.info(f"Creating embedding with model: {model}")
         return self._call_api("embeddings", model=model, input=input, **kwargs)
 
+    @BaseAPI.provider_specific
     def create_image(self, prompt: str, **kwargs) -> Dict:
         """Create an image based on the prompt."""
         logger.info(f"Creating image with prompt: {prompt}")
         return self._call_api("images/generations", prompt=prompt, **kwargs)
 
+    @BaseAPI.provider_specific
     def create_edit(self, image: BinaryIO, mask: BinaryIO, prompt: str, **kwargs) -> Dict:
         """Create an edit of an image based on a prompt."""
         logger.info(f"Creating image edit with prompt: {prompt}")
@@ -80,12 +84,14 @@ class API(BaseAPI):
         data = {'prompt': prompt, **kwargs}
         return self._call_api("images/edits", method="POST", files=files, data=data)
 
+    @BaseAPI.provider_specific
     def create_variation(self, image: BinaryIO, **kwargs) -> Dict:
         """Create a variation of an image."""
         logger.info("Creating image variation")
         files = {'image': ('image.png', image, 'image/png')}
         return self._call_api("images/variations", method="POST", files=files, data=kwargs)
 
+    @BaseAPI.provider_specific
     def create_transcription(self, file: BinaryIO, model: str, **kwargs) -> Dict:
         """Transcribe audio to text."""
         logger.info(f"Creating transcription with model: {model}")
@@ -93,6 +99,7 @@ class API(BaseAPI):
         data = {'model': model, **kwargs}
         return self._call_api("audio/transcriptions", method="POST", files=files, data=data)
 
+    @BaseAPI.provider_specific
     def create_translation(self, file: BinaryIO, model: str, **kwargs) -> Dict:
         """Translate audio to English text."""
         logger.info(f"Creating translation with model: {model}")
@@ -100,12 +107,14 @@ class API(BaseAPI):
         data = {'model': model, **kwargs}
         return self._call_api("audio/translations", method="POST", files=files, data=data)
 
+    @BaseAPI.provider_specific
     def create_speech(self, model: str, input: str, voice: str, **kwargs) -> bytes:
         """Generate speech from text."""
         logger.info(f"Creating speech with model: {model}")
         data = {'model': model, 'input': input, 'voice': voice, **kwargs}
         return self._call_api("audio/speech", method="POST", data=data, raw_response=True)
 
+    @BaseAPI.provider_specific
     def create_moderation(self, input: Union[str, List[str]], **kwargs) -> Dict:
         """Create a moderation for the given input."""
         logger.info("Creating moderation")
@@ -173,7 +182,7 @@ class API(BaseAPI):
                 return response.json()
         except requests.RequestException as e:
             logger.error(f"API call error: {str(e)}")
-            self._handle_error(e)
+            raise self._handle_error(e)
 
     def _handle_stream_response(self, response) -> Generator:
         logger.debug("Entering _handle_stream_response")
@@ -183,22 +192,22 @@ class API(BaseAPI):
                 yield json.loads(line.decode('utf-8').split('data: ')[1])
         logger.debug("Exiting _handle_stream_response")
 
-    def _handle_error(self, error: requests.RequestException):
+    def _handle_error(self, error: requests.RequestException) -> InvokeError:
         if isinstance(error, requests.ConnectionError):
-            raise InvokeConnectionError(str(error))
+            return InvokeConnectionError(str(error))
         elif isinstance(error, requests.Timeout):
-            raise InvokeConnectionError(str(error))
+            return InvokeConnectionError(str(error))
         elif isinstance(error, requests.HTTPError):
             if error.response.status_code == 429:
-                raise InvokeRateLimitError(str(error))
+                return InvokeRateLimitError(str(error))
             elif error.response.status_code in (401, 403):
-                raise InvokeAuthorizationError(str(error))
+                return InvokeAuthorizationError(str(error))
             elif error.response.status_code >= 500:
-                raise InvokeServerUnavailableError(str(error))
+                return InvokeServerUnavailableError(str(error))
             else:
-                raise InvokeBadRequestError(str(error))
+                return InvokeBadRequestError(str(error))
         else:
-            raise InvokeBadRequestError(str(error))
+            return InvokeError(str(error))
 
     def set_proxy(self, proxy_url: str):
         """Set a proxy for API calls."""

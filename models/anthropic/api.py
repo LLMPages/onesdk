@@ -5,19 +5,18 @@ import json
 import os
 import base64
 from urllib.parse import urljoin
-from ...logger import logger
-from ...utils.error_handler import handle_anthropic_error
+from ...utils.logger import logger
+from ...utils.error_handler import InvokeError, InvokeConnectionError, InvokeRateLimitError, InvokeAuthorizationError, InvokeBadRequestError
 
 class API(BaseAPI):
     DEFAULT_BASE_URL = "https://api.anthropic.com"
-    API_VERSION = "2023-06-01"  # Update this as needed
+    API_VERSION = "2023-06-01"
 
     def __init__(self, credentials: Dict[str, str]):
         super().__init__(credentials)
         self.api_key = credentials.get("api_key") or os.environ.get("ANTHROPIC_API_KEY")
         if not self.api_key:
-            raise ValueError(
-                "API key must be provided either in credentials or as an environment variable ANTHROPIC_API_KEY")
+            raise ValueError("API key must be provided either in credentials or as an environment variable ANTHROPIC_API_KEY")
         self.base_url = credentials.get("api_url", self.DEFAULT_BASE_URL)
         self.session = requests.Session()
         self.session.headers.update({
@@ -44,134 +43,106 @@ class API(BaseAPI):
     def generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
         """Generate a response using the specified model."""
         logger.info(f"Generating response with model: {model}")
-        return self._call_api("/v1/messages", model, messages, stream=False, **kwargs)
+        return self._call_api("/v1/messages", model=model, messages=messages, stream=False, **kwargs)
 
-    def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]],
-                        **kwargs) -> Generator:
+    def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Generator:
         """Generate a streaming response using the specified model."""
         logger.info(f"Generating streaming response with model: {model}")
-        yield from self._call_api("/v1/messages", model, messages, stream=True, **kwargs)
+        yield from self._call_api("/v1/messages", model=model, messages=messages, stream=True, **kwargs)
 
     def count_tokens(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]]) -> int:
         """Count tokens in a message."""
         logger.info(f"Counting tokens for model: {model}")
-        response = self._call_api("/v1/messages/count_tokens", model, messages, count_tokens=True)
-        token_count = response['input_tokens']
+        response = self._call_api("/v1/messages", model=model, messages=messages, count_tokens=True)
+        token_count = response.get('usage', {}).get('prompt_tokens', 0)
         logger.info(f"Token count for model {model}: {token_count}")
         return token_count
 
-    def _call_api(self, endpoint: str, model: str = None, data: Union[List, Dict] = None, method: str = "POST",
-                  stream: bool = False, count_tokens: bool = False, **kwargs):
+    def _call_api(self, endpoint: str, **kwargs) -> Union[Dict, Generator]:
         url = urljoin(self.base_url, endpoint)
-
         headers = self.session.headers.copy()
-        if kwargs.get('anthropic_beta'):
-            headers['anthropic-beta'] = ','.join(kwargs['anthropic_beta']) if isinstance(kwargs['anthropic_beta'],
-                                                                                         list) else kwargs[
-                'anthropic_beta']
+        method = kwargs.pop('method', 'POST')
+        stream = kwargs.pop('stream', False)
 
         if stream:
             headers['Accept'] = 'text/event-stream'
 
-        logger.debug(f"Sending request to {url}")
-        logger.debug(f"Headers: {headers}")
-
         try:
-            if method == "GET":
-                response = self.session.get(url, headers=headers)
-            else:
-                payload = self._prepare_payload(model, data, stream, count_tokens, **kwargs)
+            payload = self._prepare_payload(**kwargs) if method == 'POST' else None
+            logger.debug(f"Sending request to {url}")
+            logger.debug(f"Headers: {headers}")
+            if payload:
                 logger.debug(f"Payload: {json.dumps(payload, indent=2)}")
-                response = self.session.post(url, json=payload, headers=headers, stream=stream)
 
+            response = self.session.request(method, url, json=payload, headers=headers, stream=stream)
             response.raise_for_status()
 
-            if count_tokens:
-                return response.json()
-            elif stream:
-                logger.debug("Received streaming response")
+            if stream:
                 return self._handle_stream_response(response)
             else:
-                logger.debug("Received non-streaming response")
-                return self._handle_response(response.json())
+                return response.json()
         except requests.RequestException as e:
-            logger.error(f"API call error: {str(e)}")
-            raise handle_anthropic_error(e)
+            raise self._handle_request_error(e)
 
-    def _prepare_payload(self, model: str, data: Union[List, Dict], stream: bool, count_tokens: bool, **kwargs):
-        if isinstance(data, list):  # For messages API
-            payload = {
-                "model": model,
-                "messages": self._process_messages(data),
-            }
-            if not count_tokens:
-                payload["stream"] = stream
-        else:  # For completion API
-            payload = data
-
-        allowed_params = [
-            'max_tokens', 'metadata', 'stop_sequences', 'system',
-            'temperature', 'top_k', 'top_p', 'tools', 'tool_choice'
-        ]
+    def _prepare_payload(self, **kwargs) -> Dict:
+        payload = {
+            "model": kwargs.pop('model'),
+            "messages": self._process_messages(kwargs.pop('messages', [])),
+        }
+        allowed_params = ['max_tokens', 'temperature', 'top_p', 'stop', 'stream', 'metadata']
         payload.update({k: v for k, v in kwargs.items() if k in allowed_params})
-        logger.debug(f"Prepared payload: {json.dumps(payload, indent=2)}")
         return payload
 
     def _process_messages(self, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]]) -> List[Dict]:
-        """Process messages to include image content if present."""
         processed_messages = []
         for message in messages:
-            if isinstance(message['content'], list):
+            if isinstance(message.get('content'), list):
                 processed_content = []
                 for content in message['content']:
-                    if content['type'] == 'image':
+                    if content.get('type') == 'image':
                         processed_content.append(self._process_image_content(content))
                     else:
                         processed_content.append(content)
                 message['content'] = processed_content
             processed_messages.append(message)
-        logger.debug(f"Processed messages: {json.dumps(processed_messages, indent=2)}")
         return processed_messages
 
     def _process_image_content(self, content: Dict) -> Dict:
-        """Process image content to base64 if it's a file path."""
-        if content['source']['type'] == 'path':
+        if content.get('source', {}).get('type') == 'path':
             with open(content['source']['path'], 'rb') as image_file:
                 base64_image = base64.b64encode(image_file.read()).decode('utf-8')
             content['source'] = {
                 'type': 'base64',
-                'media_type': content['source']['media_type'],
+                'media_type': content['source'].get('media_type', 'image/jpeg'),
                 'data': base64_image
             }
-        logger.debug(f"Processed image content: {content['source']['type']}")
         return content
 
-    def _handle_response(self, response_data: Dict) -> Dict:
-        result = {
-            'id': response_data['id'],
-            'model': response_data['model'],
-            'created': None,  # Anthropic doesn't provide a timestamp
-            'choices': [{
-                'index': 0,
-                'message': response_data['content'][0],
-                'finish_reason': response_data['stop_reason']
-            }],
-            'usage': response_data['usage']
-        }
-        logger.debug(f"Handled response: {json.dumps(result, indent=2)}")
-        return result
-
-    def _handle_stream_response(self, response) -> Generator:
-        logger.debug("Entering _handle_stream_response")
+    def _handle_stream_response(self, response: requests.Response) -> Generator:
         for line in response.iter_lines():
             if line:
-                logger.debug(f"Received line: {line.decode('utf-8')}")
                 line = line.decode('utf-8')
                 if line.startswith('data: '):
-                    data = json.loads(line[6:])
-                    logger.debug(f"Parsed data: {json.dumps(data, indent=2)}")
-                    yield self._handle_response(data)
-        logger.debug("Exiting _handle_stream_response")
+                    try:
+                        data = json.loads(line[6:])
+                        yield data
+                    except json.JSONDecodeError:
+                        logger.error(f"Failed to parse streaming response: {line}")
+
+    def _handle_request_error(self, error: requests.RequestException) -> InvokeError:
+        if isinstance(error, requests.ConnectionError):
+            return InvokeConnectionError(str(error))
+        elif isinstance(error, requests.Timeout):
+            return InvokeConnectionError(str(error))
+        elif isinstance(error, requests.HTTPError):
+            if error.response.status_code == 429:
+                return InvokeRateLimitError(str(error))
+            elif error.response.status_code in (401, 403):
+                return InvokeAuthorizationError(str(error))
+            else:
+                return InvokeBadRequestError(str(error))
+        else:
+            return InvokeError(str(error))
 
     def set_proxy(self, proxy_url: str):
         """Set a proxy for API calls."""

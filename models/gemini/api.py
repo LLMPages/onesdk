@@ -4,8 +4,9 @@ import requests
 import json
 import os
 from urllib.parse import urljoin
-from ...logger import logger
+from ...utils.logger import logger
 from ...utils.error_handler import (
+    InvokeError,
     InvokeConnectionError,
     InvokeServerUnavailableError,
     InvokeRateLimitError,
@@ -28,31 +29,46 @@ class API(BaseAPI):
         })
         logger.info("Google Gemini API initialized")
 
-    def generate_content(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
+    def generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
         """Generate content using the specified model."""
         logger.info(f"Generating content with model: {model}")
         endpoint = f"{model}:generateContent"
         return self._call_api(endpoint, messages=messages, **kwargs)
 
-    def generate_content_stream(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Generator:
+    def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Generator:
         """Generate streaming content using the specified model."""
         logger.info(f"Generating streaming content with model: {model}")
         endpoint = f"{model}:streamGenerateContent"
         return self._call_api(endpoint, messages=messages, stream=True, **kwargs)
 
+    @BaseAPI.provider_specific
     def generate_content_with_image(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, Union[str, Dict]]]]]], **kwargs) -> Dict:
         """Generate content with image input using the specified model."""
         logger.info(f"Generating content with image using model: {model}")
         endpoint = f"{model}:generateContent"
         return self._call_api(endpoint, messages=messages, **kwargs)
 
-    def _call_api(self, endpoint: str, messages: List[Dict], stream: bool = False, **kwargs):
+    def create_embedding(self, model: str, input: Union[str, List[str]], **kwargs) -> Dict:
+        """Create embeddings for the given input."""
+        logger.info(f"Creating embedding with model: {model}")
+        endpoint = f"{model}:embedContent"
+        return self._call_api(endpoint, content=input, **kwargs)
+
+    def count_tokens(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]]) -> int:
+        """Count tokens in a message."""
+        logger.info(f"Counting tokens for model: {model}")
+        endpoint = f"{model}:countTokens"
+        response = self._call_api(endpoint, contents=messages)
+        token_count = response.get('totalTokens', 0)
+        logger.info(f"Token count for model {model}: {token_count}")
+        return token_count
+
+    def _call_api(self, endpoint: str, **kwargs):
         url = urljoin(self.BASE_URL, f"v1/{endpoint}")
         params = {'key': self.api_key}
+        stream = kwargs.pop('stream', False)
         
-        payload = {
-            "contents": messages
-        }
+        payload = kwargs
 
         logger.debug(f"Sending request to {url}")
         logger.debug(f"Payload: {json.dumps(payload, indent=2)}")
@@ -68,7 +84,7 @@ class API(BaseAPI):
                 return response.json()
         except requests.RequestException as e:
             logger.error(f"API call error: {str(e)}")
-            self._handle_error(e)
+            raise self._handle_error(e)
 
     def _handle_stream_response(self, response) -> Generator:
         logger.debug("Entering _handle_stream_response")
@@ -78,22 +94,22 @@ class API(BaseAPI):
                 yield json.loads(line.decode('utf-8'))
         logger.debug("Exiting _handle_stream_response")
 
-    def _handle_error(self, error: requests.RequestException):
+    def _handle_error(self, error: requests.RequestException) -> InvokeError:
         if isinstance(error, requests.ConnectionError):
-            raise InvokeConnectionError(str(error))
+            return InvokeConnectionError(str(error))
         elif isinstance(error, requests.Timeout):
-            raise InvokeConnectionError(str(error))
+            return InvokeConnectionError(str(error))
         elif isinstance(error, requests.HTTPError):
             if error.response.status_code == 429:
-                raise InvokeRateLimitError(str(error))
+                return InvokeRateLimitError(str(error))
             elif error.response.status_code in (401, 403):
-                raise InvokeAuthorizationError(str(error))
+                return InvokeAuthorizationError(str(error))
             elif error.response.status_code >= 500:
-                raise InvokeServerUnavailableError(str(error))
+                return InvokeServerUnavailableError(str(error))
             else:
-                raise InvokeBadRequestError(str(error))
+                return InvokeBadRequestError(str(error))
         else:
-            raise InvokeBadRequestError(str(error))
+            return InvokeError(str(error))
 
     def set_proxy(self, proxy_url: str):
         """Set a proxy for API calls."""

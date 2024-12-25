@@ -2,7 +2,7 @@ from ..base_api import BaseAPI
 from typing import List, Dict, Union, Generator
 import requests
 import json
-from ...logger import logger
+from ...utils.logger import logger
 from ...utils.error_handler import handle_wenxin_error
 
 class API(BaseAPI):
