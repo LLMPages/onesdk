@@ -18,6 +18,7 @@ class API(BaseAPI):
         if not self.api_key or not self.secret_key:
             raise ValueError(
                 "API key and secret key must be provided either in credentials or as environment variables WENXIN_API_KEY and WENXIN_SECRET_KEY")
+        self.base_url = credentials.get("api_url", self.BASE_URL)
         self.access_token = self._get_access_token()
         self.session = requests.Session()
         self.session.headers.update({
@@ -36,7 +37,7 @@ class API(BaseAPI):
 
     def _get_access_token(self) -> str:
         """获取access_token"""
-        url = f"{self.BASE_URL}/oauth/2.0/token"
+        url = f"{self.base_url}/oauth/2.0/token"
         params = {
             "grant_type": "client_credentials",
             "client_id": self.api_key,
@@ -85,7 +86,7 @@ class API(BaseAPI):
         yield from self._call_api(endpoint, model, messages, stream=True, **kwargs)
 
     def _call_api(self, endpoint: str, model: str, messages: List[Dict], stream: bool = False, **kwargs):
-        url = f"{self.BASE_URL}{endpoint}?access_token={self.access_token}"
+        url = f"{self.base_url}{endpoint}?access_token={self.access_token}"
         payload = self._prepare_payload(model, messages, stream, **kwargs)
         headers = self.session.headers.copy()
         if stream:

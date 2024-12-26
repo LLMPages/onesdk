@@ -15,6 +15,7 @@ from ...utils.error_handler import (
     InvokeUnsupportedOperationError
 )
 
+
 class API(BaseAPI):
     BASE_URL = "https://ark.cn-beijing.volces.com/api/v3/"
 
@@ -24,16 +25,13 @@ class API(BaseAPI):
         if not self.api_key:
             raise ValueError(
                 "API key must be provided either in credentials or as an environment variable DOUBAO_API_KEY")
+        self.base_url = credentials.get("api_url", self.BASE_URL)
         self.session = requests.Session()
         self.session.headers.update({
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
         })
         logger.info("Doubao API initialized")
-
-    def setup_credentials(self):
-        # Credentials are already set up in __init__, so we can leave this empty
-        pass
 
     def list_models(self) -> List[Dict]:
         """List available models for Doubao."""
@@ -94,7 +92,8 @@ class API(BaseAPI):
             logger.error(f"Error in tokenize: {str(e)}")
             raise
 
-    def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Generator:
+    def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]],
+                        **kwargs) -> Generator:
         """Generate a streaming response using the specified model."""
         logger.info(f"Generating streaming response with model: {model}")
         kwargs['stream'] = True
@@ -158,7 +157,8 @@ class API(BaseAPI):
         return self._call_api("context/create", **payload)
 
     @provider_specific
-    def generate_with_context(self, model: str, context_id: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
+    def generate_with_context(self, model: str, context_id: str,
+                              messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
         """Generate a response using a context."""
         logger.info(f"Generating response with context for model: {model}")
         payload = {
@@ -174,7 +174,8 @@ class API(BaseAPI):
         return self._call_api("context/chat/completions", **payload)
 
     @provider_specific
-    def visual_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
+    def visual_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]],
+                        **kwargs) -> Dict:
         """Generate a response using visual understanding."""
         logger.info(f"Generating visual response with model: {model}")
         payload = {
@@ -189,7 +190,7 @@ class API(BaseAPI):
         return self._call_api("chat/completions", **payload)
 
     def _call_api(self, endpoint: str, **kwargs):
-        url = urljoin(self.BASE_URL, endpoint)
+        url = urljoin(self.base_url, endpoint)
         method = kwargs.pop('method', 'POST')
         stream = kwargs.pop('stream', False)
 

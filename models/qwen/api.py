@@ -27,16 +27,13 @@ class API(BaseAPI):
         if not self.api_key:
             raise ValueError(
                 "API key must be provided either in credentials or as an environment variable DASHSCOPE_API_KEY")
+        self.base_url = credentials.get("api_url", self.BASE_URL)
         self.session = requests.Session()
         self.session.headers.update({
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
         })
         logger.info("Qwen API initialized")
-
-    def setup_credentials(self):
-        # Credentials are already set up in __init__, so we can leave this empty
-        pass
 
     def list_models(self) -> List[Dict]:
         """List available models for Doubao."""
@@ -76,7 +73,7 @@ class API(BaseAPI):
         return endpoint
 
     def _call_api(self, endpoint: str, model: str, messages: List[Dict], stream: bool = False, **kwargs):
-        url = urljoin(self.BASE_URL, endpoint)
+        url = urljoin(self.base_url, endpoint)
         payload = self._prepare_payload(model, messages, stream, **kwargs)
         headers = self.session.headers.copy()
         if stream:

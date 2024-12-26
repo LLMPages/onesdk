@@ -91,24 +91,27 @@ print(image_response)
 
 ## Supported Providers and Core Methods
 
-The following table shows the supported providers and their core method support:
+The following table shows the supported providers, their core method support, and additional features:
 
-| Provider  | list_models | generate | stream_generate | count_tokens | create_embedding | create_image |
-|-----------|-------------|----------|-----------------|--------------|------------------|--------------|
-| [Anthropic](docs/anthropic.md) | ✓           | ✓        | ✓               | ✓            | ✗                | ✗            |
-| [Qwen (通义千问)](docs/qwen.md)      | ✓           | ✓        | ✓               | ✓            | ✓                | ✗            |
-| [Cohere](docs/cohere.md)    | ✓           | ✓        | ✓               | ✓            | ✓                | ✗            |
-| [Doubao](docs/doubao.md)    | ✓           | ✓        | ✓               | ✓            | ✓                | ✗            |
-| [Gemini](docs/gemini.md)    | ✗           | ✓        | ✓               | ✓            | ✓                | ✗            |
-| [Kimi](docs/kimi.md)      | ✓           | ✓        | ✓               | ✓            | ✗                | ✗            |
-| [MiniMax](docs/minimax.md) | ✗           | ✓        | ✓               | ✓            | ✓                | ✓            |
-| [Ollama](docs/ollama.md)    | ✓           | ✓        | ✓               | ✓            | ✓                | ✗            |
-| [OpenAI](docs/openai.md)    | ✓           | ✓        | ✓               | ✓            | ✓                | ✓            |
-| [Wenxin (文心一言)](docs/wenxin.md)    | ✗           | ✓        | ✓               | ✓            | ✗                | ✗            |
+| Provider  | list_models | generate | stream_generate | count_tokens | create_embedding | create_image | Additional Features |
+|-----------|-------------|----------|-----------------|--------------|------------------|--------------|---------------------|
+| [Anthropic](docs/anthropic.md) | ✓           | ✓        | ✓               | ✓            | ✗                | ✗            | Context creation and management |
+| [Qwen (通义千问)](docs/qwen.md)      | ✓           | ✓        | ✓               | ✓            | ✓                | ✗            | Multimodal generation |
+| [Cohere](docs/cohere.md)*    | ✓           | ✓        | ✓               | ✓            | ✓                | ✗            | Text classification, Summarization |
+| [Doubao](docs/doubao.md)    | ✓           | ✓        | ✓               | ✓            | ✓                | ✗            | Knowledge base management, Speech synthesis |
+| [Gemini](docs/gemini.md)*    | ✗           | ✓        | ✓               | ✓            | ✓                | ✗            | Multimodal understanding |
+| [Kimi](docs/kimi.md)      | ✓           | ✓        | ✓               | ✓            | ✗                | ✗            | File operations, Context caching |
+| [MiniMax](docs/minimax.md) | ✗           | ✓        | ✓               | ✓            | ✓                | ✓            | Audio processing, Knowledge base management |
+| [Ollama](docs/ollama.md)*    | ✓           | ✓        | ✓               | ✓            | ✓                | ✗            | Local model management |
+| [OpenAI](docs/openai.md)    | ✓           | ✓        | ✓               | ✓            | ✓                | ✓            | Audio transcription, Model fine-tuning |
+| [Wenxin (文心一言)](docs/wenxin.md)    | ✗           | ✓        | ✓               | ✓            | ✗                | ✗            | Custom model settings |
 
 ✓: Supported, ✗: Not supported
 
-Note: Some providers may have additional provider-specific methods. Refer to individual provider documentation for details.
+Notes:
+1. Some providers may have additional provider-specific methods. Refer to individual provider documentation for details.
+2. Providers marked with * (Ollama, Gemini, and Cohere) are currently not fully tested. The documentation for these providers is for reference only and may not be entirely accurate or up-to-date. We are working on improving these integrations and will provide more accurate information in future updates.
+3. The "Additional Features" column summarizes some unique or extra functionalities of each provider. The availability and usage of specific features may change over time; please refer to the latest official documentation.
 
 ## Key Methods
 

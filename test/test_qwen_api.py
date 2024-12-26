@@ -39,13 +39,23 @@ class TestQwenAPI(unittest.TestCase):
         logger.info(f"Qwen token count: {token_count}")
 
     def test_generate(self):
-        logger.info("\nTesting generate for Qwen:")
-        messages = [{"role": "user", "content": "Count from 1 to 5."}]
+        logger.info("\nTesting generate for Wenxin:")
+        messages = [{"role": "user", "content": "请从1数到5。"}]
         response = self.sdk.generate(self.default_model, messages)
         self.assertIsInstance(response, Dict)
         self.assertIn('choices', response)
+        self.assertTrue(len(response['choices']) > 0, "Choices list is empty")
         self.assertIn('message', response['choices'][0])
-        logger.info(f"Qwen response: {response['choices'][0]['message']['content']}")
+        content = response['choices'][0]['message'].get('content', '')
+        logger.info(f"Wenxin response: {content}")
+
+        # 添加更多的断言来检查响应的内容
+        self.assertTrue(content, "Response content is empty")
+        if "Error" in content:
+            logger.warning(f"API returned an error response: {content}")
+        else:
+            self.assertIn("1", content)
+            self.assertIn("5", content)
 
     def test_stream_generate(self):
         logger.info("\nTesting stream_generate for Qwen:")

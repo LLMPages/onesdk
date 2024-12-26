@@ -20,7 +20,7 @@ class BaseAPI(ABC):
     def __init__(self, credentials: Dict[str, str]):
         self.credentials = credentials
         self.session = requests.Session()
-        self.setup_credentials()
+        # self.setup_credentials()
 
     @abstractmethod
     def generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:

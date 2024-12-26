@@ -14,6 +14,7 @@ from ...utils.error_handler import (
 from ...utils.logger import logger
 from ..base_api import BaseAPI, provider_specific
 
+
 class API(BaseAPI):
     BASE_URL = "https://api.baichuan-ai.com/v1/"
 
@@ -23,16 +24,13 @@ class API(BaseAPI):
         if not self.api_key:
             raise ValueError(
                 "API key must be provided either in credentials or as an environment variable BAICHUAN_API_KEY")
+        self.base_url = credentials.get("api_url", self.BASE_URL)
         self.session = requests.Session()
         self.session.headers.update({
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
         })
         logger.info("Baichuan API initialized")
-
-    def setup_credentials(self):
-        # Credentials are already set up in __init__, so we can leave this empty
-        pass
 
     def generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
         """Generate a response using the specified model."""
@@ -44,7 +42,8 @@ class API(BaseAPI):
             **kwargs
         })
 
-    def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Generator:
+    def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]],
+                        **kwargs) -> Generator:
         """Generate a streaming response using the specified model."""
         logger.info(f"Generating streaming response with model: {model}")
         endpoint = "chat/completions" if model.startswith("Baichuan2") else "stream/chat"
@@ -73,7 +72,7 @@ class API(BaseAPI):
         logger.info(f"Proxy set to {proxy_url}")
 
     def _call_api(self, endpoint: str, method: str = "POST", **kwargs):
-        url = urljoin(self.BASE_URL, endpoint)
+        url = urljoin(self.base_url, endpoint)
         logger.debug(f"Sending request to {url}")
         logger.debug(f"Method: {method}")
         logger.debug(f"Headers: {self.session.headers}")  # 打印请求头
