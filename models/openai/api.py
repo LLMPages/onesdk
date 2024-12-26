@@ -12,10 +12,10 @@ from ...utils.error_handler import (
     InvokeBadRequestError,
 )
 from ...utils.logger import logger
-from ..base_api import BaseAPI
+from ..base_api import BaseAPI, provider_specific
 
 class API(BaseAPI):
-    BASE_URL = "https://api.openai.com/v1/"
+    BASE_URL = "https://api.openai.com/"
 
     def __init__(self, credentials: Dict[str, str]):
         super().__init__(credentials)
@@ -23,6 +23,7 @@ class API(BaseAPI):
         if not self.api_key:
             raise ValueError(
                 "API key must be provided either in credentials or as an environment variable OPENAI_API_KEY")
+        self.base_url = credentials.get("api_url", self.BASE_URL)
         self.session = requests.Session()
         self.session.headers.update({
             'Authorization': f'Bearer {self.api_key}',
@@ -38,6 +39,7 @@ class API(BaseAPI):
         logger.info(f"Available models: {[model['id'] for model in models]}")
         return models
 
+    @provider_specific
     def get_model(self, model_id: str) -> Dict:
         """Get information about a specific model."""
         logger.info(f"Fetching information for model: {model_id}")
@@ -67,13 +69,13 @@ class API(BaseAPI):
         logger.info(f"Creating embedding with model: {model}")
         return self._call_api("embeddings", model=model, input=input, **kwargs)
 
-    @BaseAPI.provider_specific
+    @provider_specific
     def create_image(self, prompt: str, **kwargs) -> Dict:
         """Create an image based on the prompt."""
         logger.info(f"Creating image with prompt: {prompt}")
         return self._call_api("images/generations", prompt=prompt, **kwargs)
 
-    @BaseAPI.provider_specific
+    @provider_specific
     def create_edit(self, image: BinaryIO, mask: BinaryIO, prompt: str, **kwargs) -> Dict:
         """Create an edit of an image based on a prompt."""
         logger.info(f"Creating image edit with prompt: {prompt}")
@@ -84,14 +86,14 @@ class API(BaseAPI):
         data = {'prompt': prompt, **kwargs}
         return self._call_api("images/edits", method="POST", files=files, data=data)
 
-    @BaseAPI.provider_specific
+    @provider_specific
     def create_variation(self, image: BinaryIO, **kwargs) -> Dict:
         """Create a variation of an image."""
         logger.info("Creating image variation")
         files = {'image': ('image.png', image, 'image/png')}
         return self._call_api("images/variations", method="POST", files=files, data=kwargs)
 
-    @BaseAPI.provider_specific
+    @provider_specific
     def create_transcription(self, file: BinaryIO, model: str, **kwargs) -> Dict:
         """Transcribe audio to text."""
         logger.info(f"Creating transcription with model: {model}")
@@ -99,7 +101,7 @@ class API(BaseAPI):
         data = {'model': model, **kwargs}
         return self._call_api("audio/transcriptions", method="POST", files=files, data=data)
 
-    @BaseAPI.provider_specific
+    @provider_specific
     def create_translation(self, file: BinaryIO, model: str, **kwargs) -> Dict:
         """Translate audio to English text."""
         logger.info(f"Creating translation with model: {model}")
@@ -107,14 +109,14 @@ class API(BaseAPI):
         data = {'model': model, **kwargs}
         return self._call_api("audio/translations", method="POST", files=files, data=data)
 
-    @BaseAPI.provider_specific
+    @provider_specific
     def create_speech(self, model: str, input: str, voice: str, **kwargs) -> bytes:
         """Generate speech from text."""
         logger.info(f"Creating speech with model: {model}")
         data = {'model': model, 'input': input, 'voice': voice, **kwargs}
         return self._call_api("audio/speech", method="POST", data=data, raw_response=True)
 
-    @BaseAPI.provider_specific
+    @provider_specific
     def create_moderation(self, input: Union[str, List[str]], **kwargs) -> Dict:
         """Create a moderation for the given input."""
         logger.info("Creating moderation")
@@ -150,8 +152,39 @@ class API(BaseAPI):
         logger.info(f"Retrieving file content: {file_id}")
         return self._call_api(f"files/{file_id}/content", method="GET", raw_response=True)
 
+    @provider_specific
+    def create_fine_tuning_job(self, training_file: str, model: str, **kwargs) -> Dict:
+        """Create a fine-tuning job."""
+        logger.info(f"Creating fine-tuning job for model: {model}")
+        data = {'training_file': training_file, 'model': model, **kwargs}
+        return self._call_api("fine_tuning/jobs", method="POST", json=data)
+
+    @provider_specific
+    def list_fine_tuning_jobs(self, **kwargs) -> Dict:
+        """List fine-tuning jobs."""
+        logger.info("Listing fine-tuning jobs")
+        return self._call_api("fine_tuning/jobs", method="GET", params=kwargs)
+
+    @provider_specific
+    def get_fine_tuning_job(self, job_id: str) -> Dict:
+        """Get info about a fine-tuning job."""
+        logger.info(f"Getting info for fine-tuning job: {job_id}")
+        return self._call_api(f"fine_tuning/jobs/{job_id}", method="GET")
+
+    @provider_specific
+    def cancel_fine_tuning_job(self, job_id: str) -> Dict:
+        """Cancel a fine-tuning job."""
+        logger.info(f"Cancelling fine-tuning job: {job_id}")
+        return self._call_api(f"fine_tuning/jobs/{job_id}/cancel", method="POST")
+
+    @provider_specific
+    def list_fine_tuning_events(self, job_id: str, **kwargs) -> Dict:
+        """List fine-tuning events for a job."""
+        logger.info(f"Listing events for fine-tuning job: {job_id}")
+        return self._call_api(f"fine_tuning/jobs/{job_id}/events", method="GET", params=kwargs)
+
     def _call_api(self, endpoint: str, method: str = "POST", **kwargs):
-        url = urljoin(self.BASE_URL, endpoint)
+        url = urljoin(self.base_url, 'v1/' + endpoint)
         headers = self.session.headers.copy()
 
         logger.debug(f"Sending request to {url}")
@@ -182,6 +215,8 @@ class API(BaseAPI):
                 return response.json()
         except requests.RequestException as e:
             logger.error(f"API call error: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response body: {e.response.text}")
             raise self._handle_error(e)
 
     def _handle_stream_response(self, response) -> Generator:
@@ -189,7 +224,14 @@ class API(BaseAPI):
         for line in response.iter_lines():
             if line:
                 logger.debug(f"Received line: {line.decode('utf-8')}")
-                yield json.loads(line.decode('utf-8').split('data: ')[1])
+                if line.decode('utf-8').strip() == "data: [DONE]":
+                    logger.debug("Received DONE signal, ending stream")
+                    break
+                try:
+                    yield json.loads(line.decode('utf-8').split('data: ')[1])
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to decode JSON: {e}")
+                    continue  # Skip this line and continue with the next one
         logger.debug("Exiting _handle_stream_response")
 
     def _handle_error(self, error: requests.RequestException) -> InvokeError:

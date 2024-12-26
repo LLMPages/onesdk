@@ -12,7 +12,9 @@ from ...utils.error_handler import (
     InvokeRateLimitError,
     InvokeAuthorizationError,
     InvokeBadRequestError,
+    InvokeUnsupportedOperationError
 )
+
 
 class API(BaseAPI):
     BASE_URL = "https://dashscope.aliyuncs.com/api/v1/services/aigc/"
@@ -25,12 +27,23 @@ class API(BaseAPI):
         if not self.api_key:
             raise ValueError(
                 "API key must be provided either in credentials or as an environment variable DASHSCOPE_API_KEY")
+        self.base_url = credentials.get("api_url", self.BASE_URL)
         self.session = requests.Session()
         self.session.headers.update({
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
         })
         logger.info("Qwen API initialized")
+
+    def list_models(self) -> List[Dict]:
+        """List available models for Doubao."""
+        # Implement if Qwen supports listing models, otherwise:
+        raise InvokeUnsupportedOperationError("Listing models is not supported by Qwen API")
+
+    def get_model(self, model_id: str) -> Dict:
+        """Get information about a specific model."""
+        # Implement if Qwen supports getting model info, otherwise:
+        raise InvokeUnsupportedOperationError("Getting model information is not supported by Qwen API")
 
     def generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
         """Generate a response using the specified model."""
@@ -60,7 +73,7 @@ class API(BaseAPI):
         return endpoint
 
     def _call_api(self, endpoint: str, model: str, messages: List[Dict], stream: bool = False, **kwargs):
-        url = urljoin(self.BASE_URL, endpoint)
+        url = urljoin(self.base_url, endpoint)
         payload = self._prepare_payload(model, messages, stream, **kwargs)
         headers = self.session.headers.copy()
         if stream:

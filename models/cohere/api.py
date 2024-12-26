@@ -15,7 +15,7 @@ from ...utils.error_handler import (
 )
 
 class API(BaseAPI):
-    BASE_URL = "https://api.cohere.ai/v1/"
+    BASE_URL = "https://api.cohere.ai/"
 
     def __init__(self, credentials: Dict[str, str]):
         super().__init__(credentials)
@@ -23,6 +23,7 @@ class API(BaseAPI):
         if not self.api_key:
             raise ValueError(
                 "API key must be provided either in credentials or as an environment variable COHERE_API_KEY")
+        self.base_url = credentials.get("api_url", self.BASE_URL)
         self.session = requests.Session()
         self.session.headers.update({
             'Authorization': f'Bearer {self.api_key}',
@@ -169,7 +170,7 @@ class API(BaseAPI):
         return prompt.strip()
 
     def _call_api(self, endpoint: str, payload: Dict, method: str = "POST", stream: bool = False):
-        url = urljoin(self.BASE_URL, endpoint)
+        url = urljoin(self.base_url, "v1/" + endpoint)
         headers = self.session.headers.copy()
         if stream:
             headers['Accept'] = 'text/event-stream'

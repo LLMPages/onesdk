@@ -23,6 +23,7 @@ class API(BaseAPI):
         if not self.api_key:
             raise ValueError(
                 "API key must be provided either in credentials or as an environment variable GEMINI_API_KEY")
+        self.base_url = credentials.get("api_url", self.BASE_URL)
         self.session = requests.Session()
         self.session.headers.update({
             'Content-Type': 'application/json'
@@ -64,7 +65,7 @@ class API(BaseAPI):
         return token_count
 
     def _call_api(self, endpoint: str, **kwargs):
-        url = urljoin(self.BASE_URL, f"v1/{endpoint}")
+        url = urljoin(self.base_url, f"v1/{endpoint}")
         params = {'key': self.api_key}
         stream = kwargs.pop('stream', False)
         
