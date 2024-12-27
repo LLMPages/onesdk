@@ -15,9 +15,17 @@ from ...utils.logger import logger
 from ..base_api import BaseAPI, provider_specific
 
 class API(BaseAPI):
+    """API class for interacting with the MiniMax API."""
+
     BASE_URL = "https://api.minimax.chat/v1/"
 
     def __init__(self, credentials: Dict[str, str]):
+        """
+        Initialize the MiniMax API client.
+
+        Args:
+            credentials (Dict[str, str]): A dictionary containing API credentials.
+        """
         super().__init__(credentials)
         self.api_key = credentials.get("api_key") or os.environ.get("MINIMAX_API_KEY")
         self.group_id = credentials.get("group_id") or os.environ.get("MINIMAX_GROUP_ID")
@@ -34,7 +42,17 @@ class API(BaseAPI):
         logger.debug(f"Base URL: {self.BASE_URL}")
 
     def generate(self, model: str, messages: List[Dict[str, str]], **kwargs) -> Dict:
-        """Generate a response using the specified model."""
+        """
+        Generate a response using the specified model.
+
+        Args:
+            model (str): The model to use for generation.
+            messages (List[Dict[str, str]]): The conversation history.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The generated response.
+        """
         logger.info(f"Generating response with model: {model}")
 
         system_message = {
@@ -42,7 +60,7 @@ class API(BaseAPI):
             "content": "MM智能助理是一款由MiniMax自研的，没有调用其他产品的接口的大型语言模型。MiniMax是一家中国科技公司，一直致力于进行大模型相关的研究。"
         }
 
-        # 确保 messages 列表的第一条消息是 system 消息
+        # Ensure the first message in the list is a system message
         if messages[0].get('role') != 'system':
             messages = [system_message] + messages
 
@@ -56,7 +74,17 @@ class API(BaseAPI):
         return self._call_api("chat/completions", method="POST", json=payload)
 
     def stream_generate(self, model: str, messages: List[Dict[str, str]], **kwargs) -> Generator:
-        """Generate a streaming response using the specified model."""
+        """
+        Generate a streaming response using the specified model.
+
+        Args:
+            model (str): The model to use for generation.
+            messages (List[Dict[str, str]]): The conversation history.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Generator: A generator yielding response chunks.
+        """
         logger.info(f"Generating streaming response with model: {model}")
 
         system_message = {
@@ -64,7 +92,7 @@ class API(BaseAPI):
             "content": "MM智能助理是一款由MiniMax自研的，没有调用其他产品的接口的大型语言模型。MiniMax是一家中国科技公司，一直致力于进行大模型相关的研究。"
         }
 
-        # 确保 messages 列表的第一条消息是 system 消息
+        # Ensure the first message in the list is a system message
         if messages[0].get('role') != 'system':
             messages = [system_message] + messages
 
@@ -91,7 +119,17 @@ class API(BaseAPI):
                         logger.error(f"Failed to parse streaming response: {line}")
 
     def create_embedding(self, model: str, texts: List[str], type: str) -> Dict:
-        """Create embeddings for the given input."""
+        """
+        Create embeddings for the given input.
+
+        Args:
+            model (str): The model to use for creating embeddings.
+            texts (List[str]): The texts to create embeddings for.
+            type (str): The type of embedding to create.
+
+        Returns:
+            Dict: The created embeddings.
+        """
         logger.info(f"Creating embedding with model: {model}")
         payload = {
             "model": model,
@@ -102,7 +140,19 @@ class API(BaseAPI):
 
     @provider_specific
     def text_to_speech(self, model: str, text: str, voice_setting: Dict, audio_setting: Dict, **kwargs) -> Dict:
-        """Convert text to speech using T2A v2 API."""
+        """
+        Convert text to speech using T2A v2 API.
+
+        Args:
+            model (str): The model to use for text-to-speech.
+            text (str): The text to convert to speech.
+            voice_setting (Dict): Voice settings for the conversion.
+            audio_setting (Dict): Audio settings for the conversion.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The response from the text-to-speech API.
+        """
         logger.info(f"Converting text to speech with model: {model}")
         payload = {
             "model": model,
@@ -115,7 +165,17 @@ class API(BaseAPI):
 
     @provider_specific
     def create_video_generation_task(self, model: str, prompt: str, **kwargs) -> Dict:
-        """Create a video generation task."""
+        """
+        Create a video generation task.
+
+        Args:
+            model (str): The model to use for video generation.
+            prompt (str): The prompt for video generation.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The response containing the task ID and status.
+        """
         logger.info(f"Creating video generation task with prompt: {prompt}")
         payload = {
             "model": model,
@@ -130,13 +190,30 @@ class API(BaseAPI):
 
     @provider_specific
     def query_video_generation_task(self, task_id: str) -> Dict:
-        """Query the status of a video generation task."""
+        """
+        Query the status of a video generation task.
+
+        Args:
+            task_id (str): The ID of the task to query.
+
+        Returns:
+            Dict: The status of the video generation task.
+        """
         logger.info(f"Querying video generation task: {task_id}")
         return self._call_api(f"query/video_generation", method="GET", params={"task_id": task_id})
 
     @provider_specific
     def upload_music(self, file: BinaryIO, purpose: str = 'song') -> Dict:
-        """Upload a music file for voice or instrumental extraction."""
+        """
+        Upload a music file for voice or instrumental extraction.
+
+        Args:
+            file (BinaryIO): The music file to upload.
+            purpose (str): The purpose of the upload (default is 'song').
+
+        Returns:
+            Dict: The response from the music upload API.
+        """
         logger.info(f"Uploading music file for purpose: {purpose}")
 
         files = {'file': (file.name, file, 'audio/mpeg')}
@@ -153,7 +230,19 @@ class API(BaseAPI):
     @provider_specific
     def generate_music(self, model: str, lyrics: str, refer_voice: Optional[str] = None,
                        refer_instrumental: Optional[str] = None, **kwargs) -> Dict:
-        """Generate music based on lyrics and optional reference voice and instrumental."""
+        """
+        Generate music based on lyrics and optional reference voice and instrumental.
+
+        Args:
+            model (str): The model to use for music generation.
+            lyrics (str): The lyrics for the music.
+            refer_voice (Optional[str]): Reference voice for the music.
+            refer_instrumental (Optional[str]): Reference instrumental for the music.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The response from the music generation API.
+        """
         logger.info(f"Generating music with model: {model}")
         payload = {
             "model": model,
@@ -165,14 +254,34 @@ class API(BaseAPI):
         return self._call_api("music_generation", method="POST", json=payload)
 
     def list_files(self, purpose: str = None) -> List[Dict]:
-        """List files that have been uploaded to MiniMax."""
+        """
+        List files that have been uploaded to MiniMax.
+
+        Args:
+            purpose (str, optional): Filter files by purpose.
+
+        Returns:
+            List[Dict]: A list of dictionaries containing file information.
+        """
         logger.info("Listing files")
         params = {"purpose": purpose} if purpose else {}
         response = self._call_api("files/list", method="GET", params=params)
         return response.get('files', [])
 
     def upload_file(self, file: BinaryIO, purpose: str) -> Dict:
-        """Upload a file to MiniMax."""
+        """
+        Upload a file to MiniMax.
+
+        Args:
+            file (BinaryIO): The file to upload.
+            purpose (str): The purpose of the file upload.
+
+        Returns:
+            Dict: The response from the file upload API.
+
+        Raises:
+            InvokeError: If the file upload fails.
+        """
         logger.info(f"Uploading file for purpose: {purpose}")
         files = {'file': (file.name, file, 'application/octet-stream')}
         data = {'purpose': purpose}
@@ -183,23 +292,59 @@ class API(BaseAPI):
         return response
 
     def delete_file(self, file_id: str) -> Dict:
-        """Delete a file from MiniMax."""
+        """
+        Delete a file from MiniMax.
+
+        Args:
+            file_id (str): The ID of the file to delete.
+
+        Returns:
+            Dict: The response from the file deletion API.
+        """
         logger.info(f"Deleting file: {file_id}")
         return self._call_api(f"files/delete", method="POST", json={"file_id": file_id})
 
     def get_file_info(self, file_id: str) -> Dict:
-        """Retrieve information about a specific file."""
+        """
+        Retrieve information about a specific file.
+
+        Args:
+            file_id (str): The ID of the file to retrieve information for.
+
+        Returns:
+            Dict: Information about the specified file.
+        """
         logger.info(f"Retrieving file info: {file_id}")
         return self._call_api(f"files/retrieve", method="GET", params={"file_id": file_id})
 
     def get_file_content(self, file_id: str) -> bytes:
-        """Retrieve the content of a specific file."""
+        """
+        Retrieve the content of a specific file.
+
+        Args:
+            file_id (str): The ID of the file to retrieve content for.
+
+        Returns:
+            bytes: The content of the specified file.
+        """
         logger.info(f"Retrieving file content: {file_id}")
         response = self._call_api(f"files/retrieve_content", method="GET", params={"file_id": file_id}, data={})
         return response
 
     def create_knowledge_base(self, name: str, embedding_model: str, operator_id: int, file_id: Optional[str] = None, **kwargs) -> Dict:
-        """Create a new knowledge base."""
+        """
+        Create a new knowledge base.
+
+        Args:
+            name (str): The name of the knowledge base.
+            embedding_model (str): The embedding model to use.
+            operator_id (int): The ID of the operator creating the knowledge base.
+            file_id (Optional[str]): The ID of a file to associate with the knowledge base.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: Information about the created knowledge base.
+        """
         logger.info(f"Creating knowledge base: {name}")
         payload = {
             "operator_id": operator_id,
@@ -211,22 +356,59 @@ class API(BaseAPI):
         return self._call_api("embedding/create_knowledge_base", method="POST", json=payload)
 
     def delete_knowledge_base(self, knowledge_base_id: str, operator_id: int) -> Dict:
-        """Delete a knowledge base."""
+        """
+        Delete a knowledge base.
+
+        Args:
+            knowledge_base_id (str): The ID of the knowledge base to delete.
+            operator_id (int): The ID of the operator deleting the knowledge base.
+
+        Returns:
+            Dict: The response from the knowledge base deletion API.
+        """
         logger.info(f"Deleting knowledge base: {knowledge_base_id}")
         return self._call_api("embedding/delete_knowledge_base", method="POST", json={"knowledge_base_id": knowledge_base_id, "operator_id": operator_id})
 
     def get_knowledge_base(self, knowledge_base_id: str) -> Dict:
-        """Get information about a specific knowledge base."""
+        """
+        Get information about a specific knowledge base.
+
+        Args:
+            knowledge_base_id (str): The ID of the knowledge base to retrieve.
+
+        Returns:
+            Dict: Information about the specified knowledge base.
+        """
         logger.info(f"Getting knowledge base: {knowledge_base_id}")
         return self._call_api(f"embedding/query_knowledge_base", method="GET", params={"knowledge_base_id": knowledge_base_id})
 
     def list_knowledge_bases(self, page: int = 0, page_size: int = 10) -> Dict:
-        """List all knowledge bases."""
+        """
+        List all knowledge bases.
+
+        Args:
+            page (int): The page number for pagination (default is 0).
+            page_size (int): The number of items per page (default is 10).
+
+        Returns:
+            Dict: A dictionary containing the list of knowledge bases and pagination information.
+        """
         logger.info("Listing knowledge bases")
         return self._call_api("embedding/list_knowledge_base", method="GET", params={"page": page, "page_size": page_size})
 
     def add_document_to_knowledge_base(self, knowledge_base_id: str, file_id: str, operator_id: int, **kwargs) -> Dict:
-        """Add a document to a knowledge base."""
+        """
+        Add a document to a knowledge base.
+
+        Args:
+            knowledge_base_id (str): The ID of the knowledge base to add the document to.
+            file_id (str): The ID of the file to add as a document.
+            operator_id (int): The ID of the operator adding the document.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The response from the document addition API.
+        """
         logger.info(f"Adding document {file_id} to knowledge base {knowledge_base_id}")
         payload = {
             "knowledge_base_id": knowledge_base_id,
@@ -237,7 +419,17 @@ class API(BaseAPI):
         return self._call_api("embedding/add_document", method="POST", json=payload)
 
     def delete_document_from_knowledge_base(self, knowledge_base_id: str, file_id: str, operator_id: int) -> Dict:
-        """Delete a document from a knowledge base."""
+        """
+        Delete a document from a knowledge base.
+
+        Args:
+            knowledge_base_id (str): The ID of the knowledge base to delete the document from.
+            file_id (str): The ID of the file to delete as a document.
+            operator_id (int): The ID of the operator deleting the document.
+
+        Returns:
+            Dict: The response from the document deletion API.
+        """
         logger.info(f"Deleting document {file_id} from knowledge base {knowledge_base_id}")
         payload = {
             "knowledge_base_id": knowledge_base_id,
@@ -247,7 +439,17 @@ class API(BaseAPI):
         return self._call_api("embedding/delete_document", method="POST", json=payload)
 
     def chatcompletion_pro(self, model: str, messages: List[Dict[str, str]], **kwargs) -> Dict:
-        """Use the ChatCompletion Pro API."""
+        """
+        Use the ChatCompletion Pro API.
+
+        Args:
+            model (str): The model to use for chat completion.
+            messages (List[Dict[str, str]]): The conversation history.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The response from the ChatCompletion Pro API.
+        """
         logger.info(f"Using ChatCompletion Pro with model: {model}")
         payload = {
             "model": model,
@@ -262,7 +464,17 @@ class API(BaseAPI):
         return self._call_api("text/chatcompletion_pro", method="POST", json=payload)
 
     def stream_chatcompletion_pro(self, model: str, messages: List[Dict[str, str]], **kwargs) -> Generator:
-        """Use the ChatCompletion Pro API with streaming."""
+        """
+        Use the ChatCompletion Pro API with streaming.
+
+        Args:
+            model (str): The model to use for chat completion.
+            messages (List[Dict[str, str]]): The conversation history.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Generator: A generator yielding response chunks.
+        """
         logger.info(f"Using streaming ChatCompletion Pro with model: {model}")
 
         payload = {
@@ -290,7 +502,7 @@ class API(BaseAPI):
                 if chunk_str.startswith("data: "):
                     try:
                         parsed_data = json.loads(chunk_str[6:])
-                        if "usage" not in parsed_data:  # 忽略最后的使用情况信息
+                        if "usage" not in parsed_data:  # Ignore the final usage information
                             delta_content = parsed_data["choices"][0]["messages"]
                             yield {'delta': delta_content}
                     except json.JSONDecodeError:
@@ -298,7 +510,19 @@ class API(BaseAPI):
 
     @provider_specific
     def create_long_speech_task(self, model: str, text: str, voice_setting: Dict, audio_setting: Dict, **kwargs) -> Dict:
-        """Create a long speech generation task using T2A Large v2 API."""
+        """
+        Create a long speech generation task using T2A Large v2 API.
+
+        Args:
+            model (str): The model to use for speech generation.
+            text (str): The text to convert to speech.
+            voice_setting (Dict): Voice settings for the conversion.
+            audio_setting (Dict): Audio settings for the conversion.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The response from the long speech generation API.
+        """
         logger.info(f"Creating long speech task with model: {model}")
         payload = {
             "model": model,
@@ -311,13 +535,31 @@ class API(BaseAPI):
 
     @provider_specific
     def query_long_speech_task(self, task_id: str) -> Dict:
-        """Query the status of a long speech generation task."""
+        """
+        Query the status of a long speech generation task.
+
+        Args:
+            task_id (str): The ID of the task to query.
+
+        Returns:
+            Dict: The status of the long speech generation task.
+        """
         logger.info(f"Querying long speech task: {task_id}")
         return self._call_api(f"query/t2a_async_query_v2", method="GET", params={"task_id": task_id})
 
     @provider_specific
     def voice_cloning(self, file_id: int, voice_id: str, **kwargs) -> Dict:
-        """Clone a voice using Voice Cloning API."""
+        """
+        Clone a voice using Voice Cloning API.
+
+        Args:
+            file_id (int): The ID of the file to use for voice cloning.
+            voice_id (str): The ID to assign to the cloned voice.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The response from the voice cloning API.
+        """
         logger.info(f"Cloning voice with file_id: {file_id}")
         payload = {
             "file_id": file_id,
@@ -328,7 +570,18 @@ class API(BaseAPI):
 
     @provider_specific
     def text_to_voice(self, gender: str, age: str, voice_desc: List[str], text: str) -> Dict:
-        """Generate a voice based on text description using Voice Generation API."""
+        """
+        Generate a voice based on text description using Voice Generation API.
+
+        Args:
+            gender (str): The gender of the voice to generate.
+            age (str): The age of the voice to generate.
+            voice_desc (List[str]): Description of the voice characteristics.
+            text (str): The text to convert to speech.
+
+        Returns:
+            Dict: The response from the voice generation API.
+        """
         logger.info("Generating voice based on text description")
         payload = {
             "gender": gender,
@@ -340,7 +593,16 @@ class API(BaseAPI):
 
     @provider_specific
     def delete_voice(self, voice_type: str, voice_id: str) -> Dict:
-        """Delete a voice using Delete_Voice API."""
+        """
+        Delete a voice using Delete_Voice API.
+
+        Args:
+            voice_type (str): The type of voice to delete.
+            voice_id (str): The ID of the voice to delete.
+
+        Returns:
+            Dict: The response from the voice deletion API.
+        """
         logger.info(f"Deleting voice with voice_id: {voice_id}")
         payload = {
             "voice_type": voice_type,
@@ -349,6 +611,20 @@ class API(BaseAPI):
         return self._call_api("delete_voice", method="POST", json=payload)
 
     def _call_api(self, endpoint: str, method: str = "POST", **kwargs):
+        """
+        Make an API call to the MiniMax API.
+
+        Args:
+            endpoint (str): The API endpoint to call.
+            method (str, optional): The HTTP method to use (default is "POST").
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Union[Dict, Generator]: The API response, either as a dictionary or a generator for streaming responses.
+
+        Raises:
+            InvokeError: If there's an error during the API call.
+        """
         url = urljoin(self.base_url, endpoint)
         params = kwargs.pop('params', {})
         params['GroupId'] = self.group_id
@@ -397,6 +673,15 @@ class API(BaseAPI):
             raise self._handle_error(e)
 
     def _handle_stream_response(self, response) -> Generator:
+        """
+        Handle a streaming response from the API.
+
+        Args:
+            response (requests.Response): The streaming response object.
+
+        Yields:
+            Dict: Parsed JSON data from each line of the stream.
+        """
         logger.debug("Entering _handle_stream_response")
         for line in response.iter_lines():
             if line:
@@ -412,6 +697,15 @@ class API(BaseAPI):
         logger.debug("Exiting _handle_stream_response")
 
     def _handle_error(self, error: requests.RequestException) -> InvokeError:
+        """
+        Handle errors from API requests.
+
+        Args:
+            error (requests.RequestException): The error that occurred during the request.
+
+        Returns:
+            InvokeError: An appropriate InvokeError subclass based on the type of error.
+        """
         if isinstance(error, requests.ConnectionError):
             return InvokeConnectionError(str(error))
         elif isinstance(error, requests.Timeout):
@@ -429,7 +723,12 @@ class API(BaseAPI):
             return InvokeError(str(error))
 
     def set_proxy(self, proxy_url: str):
-        """Set a proxy for API calls."""
+        """
+        Set a proxy for API calls.
+
+        Args:
+            proxy_url (str): The URL of the proxy to use.
+        """
         self.session.proxies = {
             'http': proxy_url,
             'https': proxy_url

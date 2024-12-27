@@ -9,12 +9,21 @@ from ...utils.logger import logger
 from ...utils.error_handler import InvokeError, InvokeConnectionError, InvokeRateLimitError, InvokeAuthorizationError, \
     InvokeBadRequestError
 
-
 class API(BaseAPI):
+    """
+    API class for interacting with the Anthropic API.
+    Implements the BaseAPI interface for Anthropic-specific functionality.
+    """
     BASE_URL = "https://api.anthropic.com"
     API_VERSION = "2023-06-01"
 
     def __init__(self, credentials: Dict[str, str]):
+        """
+        Initialize the Anthropic API client.
+
+        Args:
+            credentials (Dict[str, str]): A dictionary containing API credentials.
+        """
         super().__init__(credentials)
         self.api_key = credentials.get("api_key") or os.environ.get("ANTHROPIC_API_KEY")
         if not self.api_key:
@@ -31,7 +40,12 @@ class API(BaseAPI):
 
     @provider_specific
     def list_models(self) -> List[Dict]:
-        """List available models."""
+        """
+        List available models from Anthropic.
+
+        Returns:
+            List[Dict]: A list of dictionaries containing model information.
+        """
         logger.info("Fetching available models")
         models = self._call_api("/v1/models", method="GET")
         logger.info(f"Available models: {[model['id'] for model in models['data']]}")
@@ -39,22 +53,50 @@ class API(BaseAPI):
 
     @provider_specific
     def get_model(self, model_id: str) -> Dict:
-        """Get information about a specific model."""
+        """
+        Get information about a specific model.
+
+        Args:
+            model_id (str): The ID of the model to retrieve information for.
+
+        Returns:
+            Dict: A dictionary containing model information.
+        """
         logger.info(f"Fetching information for model: {model_id}")
         model_info = self._call_api(f"/v1/models/{model_id}", method="GET")
         logger.info(f"Model info for {model_id}: {model_info}")
         return model_info
 
     def generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
-        """Generate a response using the specified model."""
+        """
+        Generate a response using the specified model.
+
+        Args:
+            model (str): The ID of the model to use for generation.
+            messages (List[Dict[str, Union[str, List[Dict[str, str]]]]]): The conversation history.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The generated response.
+        """
         logger.info(f"Generating response with model: {model}")
-        max_tokens = kwargs.pop('max_tokens', 1000)  # 默认值设为1000，可以根据需要调整
+        max_tokens = kwargs.pop('max_tokens', 1000)  # Default value set to 1000, can be adjusted as needed
         return self._call_api("/v1/messages", model=model, messages=messages, max_tokens=max_tokens, stream=False,
                               **kwargs)
 
     def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]],
                         **kwargs) -> Generator:
-        """Generate a streaming response using the specified model."""
+        """
+        Generate a streaming response using the specified model.
+
+        Args:
+            model (str): The ID of the model to use for generation.
+            messages (List[Dict[str, Union[str, List[Dict[str, str]]]]]): The conversation history.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Yields:
+            Dict: Chunks of the generated response.
+        """
         logger.info(f"Generating streaming response with model: {model}")
         max_tokens = kwargs.pop('max_tokens', 1000)
         response = self._call_api("/v1/messages", model=model, messages=messages, max_tokens=max_tokens, stream=True,
@@ -66,7 +108,16 @@ class API(BaseAPI):
                         yield {'delta': {'text': content_item['text']}}
 
     def count_tokens(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]]) -> int:
-        """Count tokens in a message."""
+        """
+        Count tokens in a message.
+
+        Args:
+            model (str): The ID of the model to use for token counting.
+            messages (List[Dict[str, Union[str, List[Dict[str, str]]]]]): The messages to count tokens for.
+
+        Returns:
+            int: The number of tokens in the messages.
+        """
         logger.info(f"Counting tokens for model: {model}")
         response = self._call_api("/v1/messages", model=model, messages=messages, max_tokens=1)
         token_count = response.get('usage', {}).get('input_tokens', 0)
@@ -74,6 +125,19 @@ class API(BaseAPI):
         return token_count
 
     def _call_api(self, endpoint: str, **kwargs) -> Union[Dict, Generator]:
+        """
+        Make an API call to the Anthropic API.
+
+        Args:
+            endpoint (str): The API endpoint to call.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Union[Dict, Generator]: The API response, either as a dictionary or a generator for streaming responses.
+
+        Raises:
+            InvokeError: If there's an error during the API call.
+        """
         url = urljoin(self.base_url, endpoint)
         headers = self.session.headers.copy()
         method = kwargs.pop('method', 'POST')
@@ -91,11 +155,11 @@ class API(BaseAPI):
 
             response = self.session.request(method, url, json=payload, headers=headers, stream=stream)
 
-            # 打印响应状态码和头部
+            # Log response status code and headers
             logger.debug(f"Response status code: {response.status_code}")
             logger.debug(f"Response headers: {response.headers}")
 
-            # 尝试打印响应体，即使状态码不是 200
+            # Attempt to log response body, even if status code is not 200
             try:
                 if not stream:
                     response_body = response.json()
@@ -124,6 +188,15 @@ class API(BaseAPI):
             raise self._handle_request_error(e)
 
     def _prepare_payload(self, **kwargs) -> Dict:
+        """
+        Prepare the payload for an API call.
+
+        Args:
+            **kwargs: Keyword arguments to include in the payload.
+
+        Returns:
+            Dict: The prepared payload.
+        """
         payload = {
             "model": kwargs.pop('model'),
             "messages": self._process_messages(kwargs.pop('messages', [])),
@@ -134,6 +207,15 @@ class API(BaseAPI):
         return payload
 
     def _process_messages(self, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]]) -> List[Dict]:
+        """
+        Process messages, handling any image content.
+
+        Args:
+            messages (List[Dict[str, Union[str, List[Dict[str, str]]]]]): The messages to process.
+
+        Returns:
+            List[Dict]: The processed messages.
+        """
         processed_messages = []
         for message in messages:
             if isinstance(message.get('content'), list):
@@ -148,6 +230,15 @@ class API(BaseAPI):
         return processed_messages
 
     def _process_image_content(self, content: Dict) -> Dict:
+        """
+        Process image content, converting file paths to base64-encoded data.
+
+        Args:
+            content (Dict): The image content to process.
+
+        Returns:
+            Dict: The processed image content.
+        """
         if content.get('source', {}).get('type') == 'path':
             with open(content['source']['path'], 'rb') as image_file:
                 base64_image = base64.b64encode(image_file.read()).decode('utf-8')
@@ -159,6 +250,15 @@ class API(BaseAPI):
         return content
 
     def _handle_stream_response(self, response: requests.Response) -> Generator:
+        """
+        Handle a streaming response from the API.
+
+        Args:
+            response (requests.Response): The streaming response object.
+
+        Yields:
+            Dict: Parsed data from the stream.
+        """
         for line in response.iter_lines():
             if line:
                 line = line.decode('utf-8')
@@ -171,6 +271,15 @@ class API(BaseAPI):
                     logger.error(f"Failed to parse streaming response: {line}")
 
     def _handle_request_error(self, error: requests.RequestException) -> InvokeError:
+        """
+        Handle errors from API requests.
+
+        Args:
+            error (requests.RequestException): The error that occurred during the request.
+
+        Returns:
+            InvokeError: An appropriate InvokeError subclass based on the type of error.
+        """
         if isinstance(error, requests.ConnectionError):
             return InvokeConnectionError(str(error))
         elif isinstance(error, requests.Timeout):
@@ -186,7 +295,12 @@ class API(BaseAPI):
             return InvokeError(str(error))
 
     def set_proxy(self, proxy_url: str):
-        """Set a proxy for API calls."""
+        """
+        Set a proxy for API calls.
+
+        Args:
+            proxy_url (str): The URL of the proxy to use.
+        """
         self.session.proxies = {
             'http': proxy_url,
             'https': proxy_url
