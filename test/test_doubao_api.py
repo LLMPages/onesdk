@@ -3,15 +3,14 @@ import sys
 import unittest
 from typing import List, Dict
 import time
-import asyncio
 from unittest.mock import patch
 
 # 添加项目根目录到 Python 路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from onesdk.core import OneSDK
-from onesdk.utils.error_handler import InvokeError, InvokeUnsupportedOperationError
-from onesdk.utils.logger import Logger, logger
+from llm_onesdk.core import OneSDK
+from llm_onesdk.utils.error_handler import InvokeError, InvokeUnsupportedOperationError
+from llm_onesdk.utils.logger import Logger, logger
 
 class TestDoubaoAPI(unittest.TestCase):
     @classmethod

@@ -1,16 +1,16 @@
 import os
 import sys
 import unittest
-from typing import List, Dict
+from typing import Dict
 import time
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 # 添加项目根目录到 Python 路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from onesdk.core import OneSDK
-from onesdk.utils.error_handler import InvokeError, InvokeBadRequestError, InvokeRateLimitError
-from onesdk.utils.logger import Logger, logger
+from llm_onesdk.core import OneSDK
+from llm_onesdk.utils.error_handler import InvokeError, InvokeBadRequestError, InvokeRateLimitError
+from llm_onesdk.utils.logger import Logger, logger
 
 class TestBaichuanAPI(unittest.TestCase):
     @classmethod
