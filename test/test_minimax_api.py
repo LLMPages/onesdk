@@ -3,16 +3,15 @@ import sys
 import unittest
 from typing import List, Dict
 import time
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 import io
 
 # 添加项目根目录到 Python 路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from onesdk.core import OneSDK
-from onesdk.utils.error_handler import InvokeError, InvokeConnectionError, InvokeRateLimitError, \
-    InvokeAuthorizationError, InvokeBadRequestError
-from onesdk.utils.logger import Logger, logger
+from llm_onesdk.core import OneSDK
+from llm_onesdk.utils.error_handler import InvokeError, InvokeConnectionError, InvokeRateLimitError, InvokeAuthorizationError, InvokeBadRequestError
+from llm_onesdk.utils.logger import Logger, logger
 
 
 class TestMiniMaxAPI(unittest.TestCase):
