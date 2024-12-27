@@ -17,9 +17,17 @@ from ...utils.error_handler import (
 
 
 class API(BaseAPI):
+    """API class for interacting with the Doubao API."""
+
     BASE_URL = "https://ark.cn-beijing.volces.com/api/v3/"
 
     def __init__(self, credentials: Dict[str, str]):
+        """
+        Initialize the Doubao API client.
+
+        Args:
+            credentials (Dict[str, str]): A dictionary containing API credentials.
+        """
         super().__init__(credentials)
         self.api_key = credentials.get("api_key") or os.environ.get("DOUBAO_API_KEY")
         if not self.api_key:
@@ -34,17 +42,38 @@ class API(BaseAPI):
         logger.info("Doubao API initialized")
 
     def list_models(self) -> List[Dict]:
-        """List available models for Doubao."""
-        # Implement if Doubao supports listing models, otherwise:
+        """
+        List available models for Doubao.
+
+        Raises:
+            InvokeUnsupportedOperationError: This operation is not supported by Doubao API.
+        """
         raise InvokeUnsupportedOperationError("Listing models is not supported by Doubao API")
 
     def get_model(self, model_id: str) -> Dict:
-        """Get information about a specific model."""
-        # Implement if Doubao supports getting model info, otherwise:
+        """
+        Get information about a specific model.
+
+        Args:
+            model_id (str): The ID of the model to retrieve information for.
+
+        Raises:
+            InvokeUnsupportedOperationError: This operation is not supported by Doubao API.
+        """
         raise InvokeUnsupportedOperationError("Getting model information is not supported by Doubao API")
 
     def generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
-        """Generate a response using the specified model."""
+        """
+        Generate a response using the specified model.
+
+        Args:
+            model (str): The model to use for generation.
+            messages (List[Dict]): The conversation history.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The generated response.
+        """
         logger.info(f"Generating response with model: {model}")
         payload = {
             "model": model,
@@ -94,13 +123,33 @@ class API(BaseAPI):
 
     def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]],
                         **kwargs) -> Generator:
-        """Generate a streaming response using the specified model."""
+        """
+        Generate a streaming response using the specified model.
+
+        Args:
+            model (str): The model to use for generation.
+            messages (List[Dict]): The conversation history.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Generator: A generator yielding response chunks.
+        """
         logger.info(f"Generating streaming response with model: {model}")
         kwargs['stream'] = True
         return self._call_api("chat/completions", model=model, messages=messages, **kwargs)
 
     def create_embedding(self, model: str, input: Union[str, List[str]], **kwargs) -> Dict:
-        """Create embeddings for the given input."""
+        """
+        Create embeddings for the given input.
+
+        Args:
+            model (str): The model to use for creating embeddings.
+            input (Union[str, List[str]]): The text(s) to create embeddings for.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The created embeddings.
+        """
         logger.info(f"Creating embedding with model: {model}")
         payload = {
             "model": model,
@@ -110,10 +159,19 @@ class API(BaseAPI):
         return self._call_api("embeddings", **payload)
 
     def count_tokens(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]]) -> int:
-        """Count tokens in messages."""
+        """
+        Count tokens in messages.
+
+        Args:
+            model (str): The model to use for token counting.
+            messages (List[Dict]): The messages to count tokens for.
+
+        Returns:
+            int: The number of tokens in the messages.
+        """
         logger.info(f"Counting tokens for model: {model}")
 
-        # 提取消息内容，形成文本列表
+        # Extract message content to form a list of texts
         text_list = [msg["content"] for msg in messages if isinstance(msg.get("content"), str)]
 
         payload = {
@@ -126,7 +184,7 @@ class API(BaseAPI):
             if 'data' not in response or not response['data']:
                 raise InvokeError("Unexpected response format from tokenization API")
 
-            # 计算所有文本的总 token 数
+            # Calculate the total token count for all texts
             token_count = sum(item.get('total_tokens', 0) for item in response['data'])
             logger.info(f"Token count for model {model}: {token_count}")
             return token_count
@@ -135,16 +193,34 @@ class API(BaseAPI):
             return self._fallback_count_tokens(text_list)
 
     def _fallback_count_tokens(self, text_list: List[str]) -> int:
-        """A simple fallback method to estimate token count."""
+        """
+        A simple fallback method to estimate token count.
+
+        Args:
+            text_list (List[str]): List of texts to estimate token count for.
+
+        Returns:
+            int: Estimated token count.
+        """
         total_chars = sum(len(text) for text in text_list)
-        # 假设平均每个token包含4个字符
+        # Assume an average of 4 characters per token
         estimated_tokens = total_chars // 4
         logger.info(f"Estimated token count (fallback method): {estimated_tokens}")
         return estimated_tokens
 
     @provider_specific
     def create_context(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
-        """Create a context for caching."""
+        """
+        Create a context for caching.
+
+        Args:
+            model (str): The model to use for context creation.
+            messages (List[Dict]): The messages to create context for.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The created context.
+        """
         logger.info(f"Creating context for model: {model}")
         payload = {
             "model": model,
@@ -159,7 +235,18 @@ class API(BaseAPI):
     @provider_specific
     def generate_with_context(self, model: str, context_id: str,
                               messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
-        """Generate a response using a context."""
+        """
+        Generate a response using a context.
+
+        Args:
+            model (str): The model to use for generation.
+            context_id (str): The ID of the context to use.
+            messages (List[Dict]): The messages to generate a response for.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The generated response.
+        """
         logger.info(f"Generating response with context for model: {model}")
         payload = {
             "model": model,
@@ -176,7 +263,17 @@ class API(BaseAPI):
     @provider_specific
     def visual_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]],
                         **kwargs) -> Dict:
-        """Generate a response using visual understanding."""
+        """
+        Generate a response using visual understanding.
+
+        Args:
+            model (str): The model to use for visual generation.
+            messages (List[Dict]): The messages to generate a response for.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The generated response.
+        """
         logger.info(f"Generating visual response with model: {model}")
         payload = {
             "model": model,
@@ -190,6 +287,19 @@ class API(BaseAPI):
         return self._call_api("chat/completions", **payload)
 
     def _call_api(self, endpoint: str, **kwargs):
+        """
+        Make an API call to the Doubao API.
+
+        Args:
+            endpoint (str): The API endpoint to call.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Union[Dict, Generator]: The API response, either as a dictionary or a generator for streaming responses.
+
+        Raises:
+            InvokeError: If there's an error during the API call.
+        """
         url = urljoin(self.base_url, endpoint)
         method = kwargs.pop('method', 'POST')
         stream = kwargs.pop('stream', False)
@@ -233,6 +343,15 @@ class API(BaseAPI):
             raise self._handle_error(e, error_message)
 
     def _handle_stream_response(self, response) -> Generator:
+        """
+        Handle a streaming response from the API.
+
+        Args:
+            response (requests.Response): The streaming response object.
+
+        Yields:
+            Dict: Parsed JSON data from each line of the stream.
+        """
         logger.debug("Entering _handle_stream_response")
         for line in response.iter_lines():
             if line:
@@ -241,6 +360,16 @@ class API(BaseAPI):
         logger.debug("Exiting _handle_stream_response")
 
     def _handle_error(self, error: requests.RequestException, error_message: str) -> InvokeError:
+        """
+        Handle errors from API requests.
+
+        Args:
+            error (requests.RequestException): The error that occurred during the request.
+            error_message (str): The error message extracted from the response.
+
+        Returns:
+            InvokeError: An appropriate InvokeError subclass based on the type of error.
+        """
         if isinstance(error, requests.ConnectionError):
             return InvokeConnectionError(f"{str(error)}. Error message: {error_message}")
         elif isinstance(error, requests.Timeout):
@@ -258,7 +387,12 @@ class API(BaseAPI):
             return InvokeError(f"{str(error)}. Error message: {error_message}")
 
     def set_proxy(self, proxy_url: str):
-        """Set a proxy for API calls."""
+        """
+        Set a proxy for API calls.
+
+        Args:
+            proxy_url (str): The URL of the proxy to use.
+        """
         self.session.proxies = {
             'http': proxy_url,
             'https': proxy_url

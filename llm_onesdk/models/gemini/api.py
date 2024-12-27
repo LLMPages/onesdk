@@ -14,10 +14,19 @@ from ...utils.error_handler import (
     InvokeBadRequestError,
 )
 
+
 class API(BaseAPI):
+    """API class for interacting with the Google Gemini API."""
+
     BASE_URL = "https://generativelanguage.googleapis.com/"
 
     def __init__(self, credentials: Dict[str, str]):
+        """
+        Initialize the Google Gemini API client.
+
+        Args:
+            credentials (Dict[str, str]): A dictionary containing API credentials.
+        """
         super().__init__(credentials)
         self.api_key = credentials.get("api_key") or os.environ.get("GEMINI_API_KEY")
         if not self.api_key:
@@ -31,32 +40,84 @@ class API(BaseAPI):
         logger.info("Google Gemini API initialized")
 
     def generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Dict:
-        """Generate content using the specified model."""
+        """
+        Generate content using the specified model.
+
+        Args:
+            model (str): The model to use for generation.
+            messages (List[Dict]): The messages to generate content for.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The generated content.
+        """
         logger.info(f"Generating content with model: {model}")
         endpoint = f"{model}:generateContent"
         return self._call_api(endpoint, messages=messages, **kwargs)
 
-    def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]], **kwargs) -> Generator:
-        """Generate streaming content using the specified model."""
+    def stream_generate(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]],
+                        **kwargs) -> Generator:
+        """
+        Generate streaming content using the specified model.
+
+        Args:
+            model (str): The model to use for generation.
+            messages (List[Dict]): The messages to generate content for.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Generator: A generator yielding response chunks.
+        """
         logger.info(f"Generating streaming content with model: {model}")
         endpoint = f"{model}:streamGenerateContent"
         return self._call_api(endpoint, messages=messages, stream=True, **kwargs)
 
     @BaseAPI.provider_specific
-    def generate_content_with_image(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, Union[str, Dict]]]]]], **kwargs) -> Dict:
-        """Generate content with image input using the specified model."""
+    def generate_content_with_image(self, model: str,
+                                    messages: List[Dict[str, Union[str, List[Dict[str, Union[str, Dict]]]]]],
+                                    **kwargs) -> Dict:
+        """
+        Generate content with image input using the specified model.
+
+        Args:
+            model (str): The model to use for generation.
+            messages (List[Dict]): The messages including image data to generate content for.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The generated content.
+        """
         logger.info(f"Generating content with image using model: {model}")
         endpoint = f"{model}:generateContent"
         return self._call_api(endpoint, messages=messages, **kwargs)
 
     def create_embedding(self, model: str, input: Union[str, List[str]], **kwargs) -> Dict:
-        """Create embeddings for the given input."""
+        """
+        Create embeddings for the given input.
+
+        Args:
+            model (str): The model to use for creating embeddings.
+            input (Union[str, List[str]]): The text(s) to create embeddings for.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Dict: The created embeddings.
+        """
         logger.info(f"Creating embedding with model: {model}")
         endpoint = f"{model}:embedContent"
         return self._call_api(endpoint, content=input, **kwargs)
 
     def count_tokens(self, model: str, messages: List[Dict[str, Union[str, List[Dict[str, str]]]]]) -> int:
-        """Count tokens in a message."""
+        """
+        Count tokens in a message.
+
+        Args:
+            model (str): The model to use for token counting.
+            messages (List[Dict]): The messages to count tokens for.
+
+        Returns:
+            int: The number of tokens in the messages.
+        """
         logger.info(f"Counting tokens for model: {model}")
         endpoint = f"{model}:countTokens"
         response = self._call_api(endpoint, contents=messages)
@@ -65,10 +126,23 @@ class API(BaseAPI):
         return token_count
 
     def _call_api(self, endpoint: str, **kwargs):
+        """
+        Make an API call to the Google Gemini API.
+
+        Args:
+            endpoint (str): The API endpoint to call.
+            **kwargs: Additional keyword arguments for the API call.
+
+        Returns:
+            Union[Dict, Generator]: The API response, either as a dictionary or a generator for streaming responses.
+
+        Raises:
+            InvokeError: If there's an error during the API call.
+        """
         url = urljoin(self.base_url, f"v1/{endpoint}")
         params = {'key': self.api_key}
         stream = kwargs.pop('stream', False)
-        
+
         payload = kwargs
 
         logger.debug(f"Sending request to {url}")
@@ -88,6 +162,15 @@ class API(BaseAPI):
             raise self._handle_error(e)
 
     def _handle_stream_response(self, response) -> Generator:
+        """
+        Handle a streaming response from the API.
+
+        Args:
+            response (requests.Response): The streaming response object.
+
+        Yields:
+            Dict: Parsed JSON data from each line of the stream.
+        """
         logger.debug("Entering _handle_stream_response")
         for line in response.iter_lines():
             if line:
@@ -96,6 +179,15 @@ class API(BaseAPI):
         logger.debug("Exiting _handle_stream_response")
 
     def _handle_error(self, error: requests.RequestException) -> InvokeError:
+        """
+        Handle errors from API requests.
+
+        Args:
+            error (requests.RequestException): The error that occurred during the request.
+
+        Returns:
+            InvokeError: An appropriate InvokeError subclass based on the type of error.
+        """
         if isinstance(error, requests.ConnectionError):
             return InvokeConnectionError(str(error))
         elif isinstance(error, requests.Timeout):
@@ -113,7 +205,12 @@ class API(BaseAPI):
             return InvokeError(str(error))
 
     def set_proxy(self, proxy_url: str):
-        """Set a proxy for API calls."""
+        """
+        Set a proxy for API calls.
+
+        Args:
+            proxy_url (str): The URL of the proxy to use.
+        """
         self.session.proxies = {
             'http': proxy_url,
             'https': proxy_url
