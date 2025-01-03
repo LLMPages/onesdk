@@ -1,1 +1,1 @@
-from onesdk.llm_onesdk.core import OneSDK
+from llm_onesdk.core import OneSDK
